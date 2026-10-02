@@ -1,0 +1,1629 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Exercice de modélisation — prototype v3 (SQL réel)</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;1,9..144,300;1,9..144,400&family=Inter:wght@300;400;500;600&display=swap');
+  :root{
+    --bg:#f3f7f4; --bg-alt:#dde9e1; --card:#ffffff; --card2:#f3f7f4;
+    --ink:#1c1733; --ink2:#5a5470; --muted:#8f8aa3;
+    --line:#c8d8cf; --line2:#c8d8cf;
+    --accent:#3d9b7e; --accent-bg:#e4f0ea; --accent-line:#3d9b7e;
+    --pro:#fb6453; --pro-bg:#ffe8e4; --pro-line:#fb6453;
+    --ok:#3d9b7e; --ok-bg:#e0efe7; --warn:#b08838; --warn-bg:#f5edda;
+    --red:#9d3a3a; --red-bg:#f6e7e7; --radius:6px;
+    --serif:'Fraunces',Georgia,serif; --sans:'Inter',-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:14px;line-height:1.5;
+    background-image:radial-gradient(circle at 0% 0%, rgba(251,100,83,0.05) 0%, transparent 40%), radial-gradient(circle at 100% 100%, rgba(61,155,126,0.06) 0%, transparent 42%);
+    background-attachment:fixed;}
+  .wrap{max-width:1720px;margin:0 auto;padding:28px 32px 60px;}
+  h1{font-family:var(--serif);font-size:34px;font-weight:400;letter-spacing:-0.02em;margin:0 0 4px;line-height:1;}
+  .sub{color:var(--ink2);font-size:15px;margin:0 0 22px;font-family:var(--serif);font-style:italic;font-weight:300;}
+  .grid{display:grid;grid-template-columns:minmax(260px,320px) minmax(0,1fr) minmax(380px,500px);gap:22px;align-items:start;}
+  .panel{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:16px 18px;}
+  .panel h2{font-size:10px;font-weight:500;color:var(--ink2);margin:0 0 12px;text-transform:uppercase;letter-spacing:.18em;}
+  .enonce{background:var(--card2);border:1px solid var(--line);border-radius:var(--radius);padding:9px 11px;margin-bottom:7px;font-size:12px;line-height:1.9;}
+  .frag{display:inline-block;padding:2px 7px;margin:2px 1px;border-radius:var(--radius);border:1px solid var(--line2);background:#fff;cursor:grab;user-select:none;font-size:11px;}
+  .frag.id{background:var(--accent-bg);border-color:var(--accent-line);color:var(--accent);}
+  .frag.used{opacity:.32;}
+  .lnk{color:var(--muted);font-size:12px;}
+  .btn{font-size:11px;letter-spacing:.06em;text-transform:uppercase;font-weight:500;padding:8px 13px;border:1px solid var(--line2);background:#fff;border-radius:999px;cursor:pointer;color:var(--ink);transition:all .15s ease;}
+  .btn:hover{background:var(--card2)}
+  .btn.pri{border-color:var(--accent);color:#fff;background:var(--accent);}
+  .btn.on{border-color:var(--pro);color:#fff;background:var(--pro);}
+  .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+  .tables{display:flex;flex-direction:column;gap:16px;}
+  .tbl{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:14px;}
+  .tbl-head{display:flex;align-items:center;gap:8px;margin-bottom:10px;}
+  .tbl-label{font-family:var(--serif);font-weight:400;font-size:16px;color:var(--ink);}
+  .tbl-action{font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);cursor:pointer;margin-left:12px;}
+  .tbl-action:hover{color:var(--ink);}
+  table{border-collapse:collapse;width:100%;font-size:13px;}
+  th,td{border:1px solid var(--line);padding:0;text-align:left;vertical-align:middle;}
+  th{background:var(--card2);color:var(--ink2);font-weight:600;font-size:12px;padding:0;position:relative;}
+  th .colhead{display:flex;align-items:center;gap:4px;padding:5px 22px 5px 8px;}
+  th .colkind{font-size:10px;letter-spacing:.04em;text-transform:uppercase;color:var(--ink2);}
+  th .colx{cursor:pointer;color:var(--muted);font-weight:700;font-size:12px;line-height:1;}
+  th .colx:hover{color:var(--red);}
+  .rowx{cursor:pointer;color:var(--muted);font-weight:700;font-size:13px;line-height:1;padding:2px;}
+  .rowx:hover{color:var(--red);}
+  th .port{position:absolute;right:3px;top:50%;transform:translateY(-50%);width:15px;height:15px;border-radius:50%;background:#fff;border:1.5px solid var(--pro-line);cursor:crosshair;display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--pro);}
+  th .port:hover{background:var(--pro-bg);}
+  td .cell{min-height:30px;min-width:74px;padding:6px 8px;display:flex;align-items:center;gap:4px;}
+  td .chip{cursor:grab;}
+  td .chip:active{cursor:grabbing;}
+  td.drop{background:#fff;}
+  td.drop.over{background:var(--accent-bg);}
+  td.drop.sel{background:var(--pro-bg);box-shadow:inset 0 0 0 1px var(--pro);}
+  .chip{background:var(--card2);border:1px solid var(--line2);border-radius:5px;padding:2px 7px;font-size:12px;display:inline-flex;align-items:center;gap:5px;}
+  .chip.id{background:var(--accent-bg);border-color:var(--accent-line);color:var(--accent);}
+  .chip .x{cursor:pointer;color:var(--muted);font-weight:700;}
+  .addcol,.addrow{font-size:12px;color:var(--accent);cursor:pointer;padding:4px 6px;display:inline-block;}
+  .q{border:1px solid var(--line);border-radius:var(--radius);padding:8px 9px;margin-bottom:0;background:#fff;}
+  .q-top{display:flex;justify-content:space-between;align-items:flex-start;gap:6px;}
+  .q-text{font-size:11px;font-weight:500;line-height:1.35;}
+  .q-cost{font-size:10px;color:var(--ink2);white-space:nowrap;text-align:right;}
+  .cost-badge{display:inline-block;font-weight:500;font-size:10px;letter-spacing:.04em;padding:1px 8px;border-radius:999px;background:var(--card2);border:1px solid var(--line2);}
+  .cost-badge.good{background:var(--ok-bg);border-color:#C0DD97;color:var(--ok);}
+  .cost-badge.mid{background:var(--warn-bg);border-color:#FAC775;color:var(--warn);}
+  .cost-badge.no{background:var(--red-bg);border-color:#F09595;color:var(--red);}
+  .cost-detail{font-size:9px;color:var(--muted);margin-top:3px;letter-spacing:.02em;}
+  .tbl.hl{box-shadow:0 0 0 2px var(--pro);border-color:var(--pro);}
+  .lvlbar{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;}
+  .lvlbtn{font-size:11px;letter-spacing:.06em;text-transform:uppercase;font-weight:500;padding:7px 14px;border:1px solid var(--line2);background:#fff;border-radius:999px;cursor:pointer;color:var(--ink2);transition:all .15s ease;}
+  .lvlbtn:hover{background:var(--card2);}
+  .lvlbtn.on{background:var(--ink);border-color:var(--ink);color:#fff;}
+  .lvlbtn.solved{background:linear-gradient(135deg,#f7e8bd,#eed27f);border-color:#c9a227;color:#6b5300;}
+  .lvlbtn.solved::after{content:' ★';}
+  .lvlbtn.solved.on{background:linear-gradient(135deg,#e3c661,#c9a227);border-color:#a5841c;color:#fff;}
+  .q-sub{font-size:10px;font-style:italic;color:var(--ink2);margin-top:3px;line-height:1.4;font-weight:400;}
+  .q-ident{display:inline-block;font-size:9px;letter-spacing:.05em;text-transform:uppercase;color:var(--pro);background:var(--pro-bg);border:1px solid var(--pro-line);border-radius:999px;padding:1px 7px;margin-top:4px;font-weight:500;}
+  .victory{display:none;font-size:13px;font-weight:500;color:var(--ok);background:var(--ok-bg);border:1px solid #C0DD97;border-radius:var(--radius);padding:10px 14px;margin-bottom:14px;}
+  .victory.show{display:block;}
+  .st-over{color:var(--red) !important;}
+  .q-res{margin-top:6px;display:flex;flex-direction:column;gap:6px;}
+  .q-res .cellbox{border:1px solid var(--line);border-radius:5px;padding:5px 6px;background:var(--card2);}
+  .q-res .cellbox .h{font-size:9px;text-transform:uppercase;letter-spacing:.03em;color:var(--muted);margin-bottom:3px;display:flex;align-items:center;gap:5px;}
+  .q-res .cellbox.model.ok{background:var(--ok-bg);border-color:#C0DD97;}
+  .q-res .cellbox.model.ko{background:var(--red-bg);border-color:#F09595;}
+  .q-res table{font-size:10px;width:auto;}
+  .q-res td,.q-res th{padding:1px 5px;border:1px solid var(--line);}
+  .q-res .empty{font-size:10px;color:var(--muted);font-style:italic;}
+  .verdict{margin-top:5px;font-size:10px;font-weight:500;}
+  .qgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+  .verdict.ok{color:var(--ok);}
+  .verdict.ko{color:var(--red);}
+  .verdict.na{color:var(--muted);}
+  .stat{display:flex;gap:28px;margin-bottom:22px;flex-wrap:wrap;padding-bottom:20px;border-bottom:1px solid var(--line);}
+  .stat .s{border-left:2px solid var(--line);padding-left:14px;}
+  .stat .s.accent{border-left-color:var(--pro);}
+  .stat .s .k{font-size:10px;color:var(--ink2);text-transform:uppercase;letter-spacing:.18em;margin-bottom:4px;}
+  .stat .s .v{font-family:var(--serif);font-size:30px;line-height:1;font-weight:400;color:var(--ink);}
+  .hint{font-size:13px;color:var(--ink);background:var(--bg-alt);border:none;border-left:2px solid var(--accent);border-radius:0;padding:12px 16px;margin-bottom:20px;line-height:1.55;}
+  .foot{font-size:12px;color:var(--muted);margin-top:16px;line-height:1.6;}
+  details summary{cursor:pointer;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink2);}
+  code{background:var(--card2);border:1px solid var(--line);border-radius:4px;padding:0 4px;font-size:12px;}
+  #linksLayer{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:40;}
+  #linksLayer path{pointer-events:stroke;}
+  .linkrow{font-size:12px;display:flex;align-items:center;gap:6px;margin-top:4px;color:var(--pro);}
+  .linkrow .x{cursor:pointer;color:var(--muted);font-weight:700;}
+  .banner{font-size:12px;color:var(--pro);background:var(--pro-bg);border:1px solid var(--pro-line);border-radius:var(--radius);padding:6px 10px;margin-bottom:10px;display:none;}
+  .banner.show{display:block;}
+  #loading{font-size:13px;color:var(--ink2);padding:10px 0;}
+  .pager{display:flex;align-items:center;gap:10px;margin-top:8px;justify-content:center;}
+  .pager .pgbtn{font-size:13px;padding:5px 10px;border:1px solid var(--line2);background:#fff;border-radius:var(--radius);cursor:pointer;color:var(--ink);}
+  .pager .pgbtn:hover{background:var(--card2);}
+  .pager .pgbtn:disabled{opacity:.35;cursor:default;}
+  .pager .pgnum{font-size:12px;color:var(--ink2);min-width:56px;text-align:center;}
+  #coach{background:#fff;border:1px solid var(--pro-line);border-left:4px solid var(--pro);border-radius:8px;padding:14px 18px;margin-bottom:16px;display:none;}
+  .coach-step{font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--pro);margin-bottom:4px;}
+  .coach-title{font-family:var(--serif);font-size:18px;margin-bottom:6px;}
+  .coach-body{font-size:13px;line-height:1.6;max-width:960px;}
+  .coach-row{margin-top:10px;display:flex;align-items:center;gap:16px;}
+  .coach-skip{font-size:11px;color:var(--muted);cursor:pointer;text-decoration:underline;}
+  .coach-skip:hover{color:var(--ink);}
+  .tuto-target{box-shadow:0 0 0 2px var(--pro), 0 0 14px rgba(251,100,83,.35) !important;border-radius:8px;transition:box-shadow .2s;}
+  .dupwarn{font-size:10px;color:#8a6100;background:#fdf1d2;border:1px solid #e8d193;border-radius:999px;padding:2px 9px;margin-left:12px;cursor:help;letter-spacing:.03em;}
+  th.hl-col, td.hl-col{background:var(--pro-bg) !important;box-shadow:inset 0 0 0 2px var(--pro);}
+  td.hl-col .cell{background:transparent;}
+  th.hl-col-soft, td.hl-col-soft{background:#fdf3f1 !important;box-shadow:inset 0 0 0 1px rgba(251,100,83,.35);}
+</style>
+</head>
+<body>
+<svg id="linksLayer"></svg>
+<div class="wrap">
+  <div style="font-size:10px;letter-spacing:.32em;text-transform:uppercase;color:var(--ink2);margin-bottom:8px;">Cartelis · Évaluation Data / CRM</div>
+  <h1>Exercice de modélisation</h1>
+  <p class="sub">Construis tes tables, relie librement les champs — chaque besoin métier est ensuite calculé sur ton modèle et confronté au résultat attendu.</p>
+
+  <div id="loading">Chargement du moteur SQL…</div>
+
+  <div class="lvlbar" id="lvlbar"></div>
+  <div id="coach"></div>
+  <div class="victory" id="victory"></div>
+
+  <div class="stat">
+    <div class="s"><div class="k">Tables</div><div class="v" id="st-tables">0</div></div>
+    <div class="s"><div class="k">Champs</div><div class="v" id="st-cols">0</div></div>
+    <div class="s"><div class="k">Liens</div><div class="v" id="st-links">0</div></div>
+    <div class="s accent"><div class="k">Besoins couverts</div><div class="v" id="st-correct">0 / 5</div></div>
+    <div class="s accent"><div class="k">Coût du modèle</div><div class="v" id="st-cost">—</div><div class="cost-detail" id="st-cost-detail"></div></div>
+  </div>
+
+  <div class="grid">
+    <div>
+      <div class="panel">
+        <h2>Énoncés métier</h2>
+        <div class="pager" id="pager"></div>
+        <div id="enonces" style="margin-top:10px;"></div>
+        <p class="lnk" style="margin:8px 0 0;">Glisse chaque fragment dans une cellule.</p>
+      </div>
+    </div>
+
+    <div>
+      <div class="banner" id="linkBanner"></div>
+      <div class="row" style="margin-bottom:12px;">
+        <button class="btn pri" id="addTable"><b>+</b>&nbsp; Nouvelle table</button>
+        <button class="btn" id="linkMode"><b>↔</b>&nbsp; Relier des champs</button>
+        <button class="btn" id="reset">Réinitialiser</button>
+        <button class="btn" id="tutoRestart" style="display:none;">↺ Tutoriel</button>
+        <span class="lnk" id="msg"></span>
+      </div>
+      <div class="tables" id="tables"></div>
+    </div>
+
+    <div>
+      <div class="panel">
+        <h2>Besoins métier — résultat de ton modèle vs attendu</h2>
+        <div id="questions" class="qgrid"></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.3/sql-wasm.js"></script>
+<script>
+let SQL=null, dbReady=false;
+
+initSqlJs({ locateFile: f => 'https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.3/'+f })
+  .then(function(sql){ SQL=sql; dbReady=true; document.getElementById('loading').style.display='none'; render(); })
+  .catch(function(e){ document.getElementById('loading').textContent='Impossible de charger le moteur SQL : '+e.message; });
+
+const KIND_META = {
+  prenom: {role:'prenom',  label:'prénom'},
+  nomfam: {role:'nomfam',  label:'nom'},
+  email:  {role:'email',   label:'email'},
+  montant:{role:'montant', label:'montant'},
+  date:   {role:'date',    label:'date'},
+  news:   {role:'news',    label:'news'},
+  sms:    {role:'sms',     label:'sms'},
+  email_pref:{role:'email_pref', label:'optin email'},
+  campagne:{role:'campagne', label:'campagne'},
+  clic:   {role:'clic',    label:'clic'},
+  commande:{role:'commande', label:'commande'},
+  produit:{role:'produit', label:'produit'},
+  ligne_montant:{role:'ligne_montant', label:'montant ligne'},
+  role:   {role:'role',    label:'rôle'},
+  periode:{role:'periode', label:'période'},
+  prix:   {role:'prix',    label:'prix'},
+  quantite:{role:'quantite', label:'quantité'},
+  categorie:{role:'categorie', label:'catégorie'},
+  canal:  {role:'canal',   label:'canal'},
+  vendeur:{role:'vendeur', label:'vendeur'},
+  magasin:{role:'magasin', label:'magasin'},
+  origine:{role:'origine', label:'origine'},
+};
+
+const P = {
+  cam1: {prenom:'Camille', nomfam:'Roux',   email:'camille.roux@mail.fr', fem:true},
+  cam2: {prenom:'Camille', nomfam:'Fabre',  email:'camille.fabre@mail.fr', fem:true},
+  yan:  {prenom:'Yanis',   nomfam:'Kadri',  email:'yanis.kadri@mail.fr', fem:false},
+  sof:  {prenom:'Sofia',   nomfam:'Martin', email:'sofia.martin@mail.fr', fem:true},
+  lea:  {prenom:'Léa',     nomfam:'Blanc',  email:'lea.blanc@mail.fr', fem:true},
+  nin:  {prenom:'Nino',    nomfam:'Costa',  email:'nino.costa@mail.fr', fem:false},
+};
+
+function nm(p){ return [{t:p.prenom,k:'prenom',id:true},{t:p.nomfam,k:'nomfam',id:true}]; }
+// Convention d'énoncé : chaque jeton '@N' référence parts[N] en indice ABSOLU.
+// (L'ancienne convention implicite « @N -> parts[N+2] via @n » a produit deux bugs — supprimée.)
+function eAchat(p,m,d){ return {tpl:['@0','@1','a réalisé un achat de','@2','€ le','@3','.'],
+  parts:[...nm(p),{t:m,k:'montant'},{t:d,k:'date'}]}; }
+function ePref(p,news,sms,ep){ return {tpl:['@0','@1','est abonné'+(p.fem?'e':'')+' à la newsletter (','@2','), a','@3','les communications marketing par SMS, a','@4','les communications marketing par e-mail, et son adresse e-mail est','@5','.'],
+  parts:[...nm(p),{t:news,k:'news'},{t:sms,k:'sms'},{t:ep,k:'email_pref'},{t:p.email,k:'email',id:true}]}; }
+function ePartic(p,camp,clic,relance){ return {tpl:['@0','@1','a reçu '+(relance?'une relance de la campagne':'la campagne'),'@2','et a cliqué :','@3','.'],
+  parts:[...nm(p),{t:camp,k:'campagne',id:true},{t:clic,k:'clic'}]}; }
+// N5 — une carte par ligne de commande, TOUT mélangé (client, commande, produit, catégorie, montant) :
+// c'est au joueur de découper lui-même les tables aux bons grains.
+function eLigneFull(p,cmd,prod,cat,montant){ return {tpl:['La commande','@0',', passée par','@1','@2','(','@3','), contient le produit','@4','(catégorie','@5',') pour','@6','€.'],
+  parts:[{t:cmd,k:'commande',id:true},...nm(p),{t:p.email,k:'email',id:true},{t:prod,k:'produit',id:true},{t:cat,k:'categorie',id:true},{t:montant,k:'ligne_montant'}]}; }
+function eProduitJamaisVendu(prod,cat){ return {tpl:['Le produit','@0','(catégorie','@1',') n’a encore jamais été vendu.'],
+  parts:[{t:prod,k:'produit',id:true},{t:cat,k:'categorie',id:true}]}; }
+function eCampagneMail(p,camp,clic){ return {tpl:['@0','@1','(','@2',') a reçu la campagne','@3','et a cliqué :','@4','.'],
+  parts:[...nm(p),{t:p.email,k:'email',id:true},{t:camp,k:'campagne',id:true},{t:clic,k:'clic'}]}; }
+// N6 — achats identifiés par e-mail + parrainages. Les rôles sont des VALEURS (kind 'role'), jamais des noms de colonnes.
+// Seul le fragment 'parrain' existe : c'est la structure de l'énoncé qui rend le sens compréhensible,
+// et l'unique rôle disponible pousse vers la modélisation cible (table de rôle des parrains, l'autre côté par élimination).
+function eAchatMail(p,m){ return {tpl:['@0','@1','(','@2',') a réalisé un achat de','@3','€.'],
+  parts:[...nm(p),{t:p.email,k:'email',id:true},{t:m,k:'montant'}]}; }
+function eParrainage(par,fil){ return {tpl:['Le client','@0','(','@1',') a parrainé le client','@2','.'],
+  parts:[{t:par.email,k:'email',id:true},{t:'parrain',k:'role'},{t:fil.email,k:'email',id:true}]}; }
+// N7 — grille tarifaire (période = étiquette) et ventes (date brute, SANS période : le joueur la recopie à la main)
+function eTarif(periode,prod,prix){ return {tpl:['Sur la période','@0',', le produit','@1','coûte','@2','€.'],
+  parts:[{t:periode,k:'periode',id:true},{t:prod,k:'produit',id:true},{t:prix,k:'prix'}]}; }
+// N7 — deux syntaxes de cartes de vente à COMBINER dans une même table :
+// en boutique (avec vendeur), en ligne (avec origine du lead, inutile ici). Les ventes en ligne n'ont pas de vendeur.
+function eVenteBoutique(date,qte,prod,vendeur){ return {tpl:['Le','@0',',','@1','unité(s) de','@2','ont été vendues en','@3','par','@4','.'],
+  parts:[{t:date,k:'date',id:true},{t:qte,k:'quantite'},{t:prod,k:'produit',id:true},{t:'Boutique',k:'canal'},{t:vendeur,k:'vendeur',id:true}]}; }
+function eVenteLigne(date,qte,prod,origine){ return {tpl:['Le','@0',',','@1','unité(s) de','@2','ont été vendues','@3','(origine du lead :','@4',').'],
+  parts:[{t:date,k:'date',id:true},{t:qte,k:'quantite'},{t:prod,k:'produit',id:true},{t:'En ligne',k:'canal'},{t:origine,k:'origine'}]}; }
+function eVendeurMag(vendeur,magasin){ return {tpl:['@0','travaille au magasin de','@1','.'],
+  parts:[{t:vendeur,k:'vendeur',id:true},{t:magasin,k:'magasin',id:true}]}; }
+
+function eProfil(p){ return {tpl:['L’adresse e-mail de','@0','@1','est','@2','.'],
+  parts:[...nm(p),{t:p.email,k:'email',id:true}]}; }
+
+// ——— Énoncés partagés ———
+// Tutoriel : 5 achats (page 1) + 3 profils e-mail (page 2). Deux Camille -> l'identité prénom+nom a un sens.
+const TUTO_ACHATS=[eAchat(P.cam1,'120','3 mars'),eAchat(P.cam1,'80','19 mars'),eAchat(P.cam2,'200','2 avril'),eAchat(P.yan,'240','6 avril'),eAchat(P.yan,'60','12 avril')];
+const TUTO_PROFILS=[eProfil(P.cam1),eProfil(P.cam2),eProfil(P.yan)];
+const ACHATS_L14=[eAchat(P.cam1,'120','3 mars'),eAchat(P.cam1,'80','19 mars'),eAchat(P.cam2,'200','2 avril'),eAchat(P.yan,'240','6 avril'),eAchat(P.yan,'100','12 avril'),eAchat(P.sof,'55','6 avril')];
+const PREFS_L14=[ePref(P.cam1,'oui','refusé','accepté'),ePref(P.cam2,'non','accepté','accepté'),ePref(P.yan,'oui','accepté','accepté'),ePref(P.sof,'oui','refusé','refusé')];
+const PARTIC_L34=[ePartic(P.cam1,'Printemps','oui',false),ePartic(P.cam1,'Printemps','non',true),ePartic(P.cam1,'Été','non',false),
+  ePartic(P.cam2,'Printemps','non',false),ePartic(P.cam2,'Été','oui',false),ePartic(P.yan,'Printemps','oui',false),ePartic(P.sof,'Été','non',false)];
+// N5 — 8 cartes ligne tout-en-un (à découper soi-même), 1 produit jamais vendu, campagnes clients (dont une cliente sans commande)
+const LIGNES_L5=[
+  eLigneFull(P.cam1,'C1','Clavier','Périphériques','45'),eLigneFull(P.cam1,'C1','Souris','Périphériques','25'),
+  eLigneFull(P.cam2,'C2','Clavier','Périphériques','45'),eLigneFull(P.cam2,'C2','Casque','Image & son','60'),
+  eLigneFull(P.yan,'C3','Écran','Image & son','180'),eLigneFull(P.yan,'C3','Souris','Périphériques','25'),
+  eLigneFull(P.yan,'C3','Casque','Image & son','60'),
+  eLigneFull(P.cam1,'C4','Écran','Image & son','180')];
+const CATALOGUE_L5=[eProduitJamaisVendu('Webcam','Périphériques')];
+const CAMPAGNES_L5=[eCampagneMail(P.cam1,'Printemps','oui'),eCampagneMail(P.cam2,'Été','non'),eCampagneMail(P.yan,'Printemps','oui'),eCampagneMail(P.sof,'Été','oui')];
+// N6 — parrainages en chaîne (Fabre est à la fois filleule et marraine) + participations campagne
+const ACHATS_L6=[eAchatMail(P.cam1,'120'),eAchatMail(P.cam1,'80'),eAchatMail(P.cam2,'200'),eAchatMail(P.yan,'240'),eAchatMail(P.yan,'100'),eAchatMail(P.sof,'55'),eAchatMail(P.lea,'90'),eAchatMail(P.lea,'110'),eAchatMail(P.nin,'60')];
+const PARRAINAGES_L6=[eParrainage(P.cam1,P.cam2),eParrainage(P.cam2,P.sof),eParrainage(P.yan,P.lea),eParrainage(P.yan,P.nin)];
+const PARTIC_L6=[eCampagneMail(P.cam1,'Rentrée','oui'),eCampagneMail(P.cam2,'Rentrée','oui'),eCampagneMail(P.yan,'Rentrée','non'),
+  eCampagneMail(P.sof,'Fidélité','oui'),eCampagneMail(P.lea,'Fidélité','non'),eCampagneMail(P.nin,'Fidélité','oui')];
+// N7 — grille à trois produits + canal de vente (périodes contiguës, sans chevauchement, couvrant toutes les dates)
+const TARIFS_L7=[eTarif('1er–15 mars','Clavier','45'),eTarif('16–31 mars','Clavier','40'),
+  eTarif('1er–15 mars','Écran','180'),eTarif('16–31 mars','Écran','170'),
+  eTarif('1er–15 mars','Souris','25'),eTarif('16–31 mars','Souris','20')];
+const VENTES_L7=[eVenteBoutique('12 mars','3','Clavier','Inès'),eVenteLigne('20 mars','2','Clavier','Newsletter'),
+  eVenteLigne('5 mars','1','Écran','Publicité'),eVenteBoutique('28 mars','2','Écran','Marco'),
+  eVenteBoutique('30 mars','1','Clavier','Inès'),eVenteLigne('14 mars','2','Souris','Newsletter'),eVenteBoutique('22 mars','4','Souris','Marco')];
+const VENDEURS_L7=[eVendeurMag('Inès','Lyon'),eVendeurMag('Marco','Paris')];
+
+// ——— Niveaux ———
+// Besoin nouveau schéma : {id, text, roles, agg, value?, filters?, group?, rateRole?, derived?, having?, truth:{type:'scalar'|'rows', v?|rows?, cols?, labels?}}
+const LEVELS=[
+ {id:0, titre:'Tutoriel', budget:7,
+  enonces:[...TUTO_ACHATS,...TUTO_PROFILS],
+  besoins:[
+   {id:'t1', text:'CA total', subtitle:'Somme des montants de tous les achats.', cap:2,
+    roles:['montant'], agg:'sumf', value:'montant', truth:{type:'scalar', v:700}},
+   {id:'t2', text:'CA par client', subtitle:'Somme des achats de chaque personne.', ident:'nom', cap:6,
+    roles:['montant'], agg:'sum_ident', value:'montant',
+    truth:{type:'rows', cols:['prénom','nom','CA'], rows:[['Camille','Fabre',200],['Camille','Roux',200],['Yanis','Kadri',300]]}},
+  ]},
+ {id:1, titre:'Niveau 1 — Le rapport mensuel', budget:10,
+  enonces:[...ACHATS_L14,...PREFS_L14],
+  besoins:[
+   {id:'B1', text:'CA des abonnés news + optin e-mail', subtitle:'Somme des achats des clients avec newsletter = oui ET optin e-mail = accepté.', cap:10,
+    roles:['montant','news','email_pref'], agg:'sumf', value:'montant',
+    filters:[{role:'news',val:'oui'},{role:'email_pref',val:'accepté'}], truth:{type:'scalar', v:540}},
+   {id:'B2', text:'Panier moyen SMS sans newsletter', subtitle:'Moyenne des montants d’achat des clients avec optin SMS = accepté ET newsletter = non.', cap:10,
+    roles:['montant','sms','news'], agg:'avgf', value:'montant',
+    filters:[{role:'sms',val:'accepté'},{role:'news',val:'non'}], truth:{type:'scalar', v:200}},
+   {id:'B3', text:'Clients avec les trois optins', subtitle:'Compter les couples prénom + nom distincts ayant newsletter = oui, SMS = accepté et e-mail = accepté.', ident:'nom', cap:7,
+    roles:['news','sms','email_pref'], agg:'countf',
+    filters:[{role:'news',val:'oui'},{role:'sms',val:'accepté'},{role:'email_pref',val:'accepté'}], truth:{type:'scalar', v:1}},
+   {id:'B4', text:'LTV moyenne selon newsletter', subtitle:'Somme des achats par adresse e-mail, puis moyenne par statut newsletter.', ident:'email', cap:10,
+    roles:['montant','news'], agg:'avg_ltv_by', value:'montant', group:'news',
+    truth:{type:'rows', cols:['newsletter','LTV moyenne'], rows:[['non',200],['oui',198.33]]}},
+   {id:'B5', text:'CA total', subtitle:'Somme de tous les montants d’achat.', cap:4,
+    roles:['montant'], agg:'sumf', value:'montant', truth:{type:'scalar', v:795}},
+  ]},
+ {id:2, titre:'Niveau 2 — Le dashboard', budget:13,
+  enonces:[...ACHATS_L14,...PREFS_L14],
+  besoins:[
+   {id:'b1', text:'CA total', subtitle:'Somme des montants.', cap:4, roles:['montant'], agg:'sumf', value:'montant', truth:{type:'scalar', v:795}},
+   {id:'b2', text:'Nombre d’achats', subtitle:'Compter les lignes d’achat.', cap:4, roles:['montant'], agg:'countf', truth:{type:'scalar', v:6}},
+   {id:'b3', text:'Achat maximum', subtitle:'Montant le plus élevé.', cap:4, roles:['montant'], agg:'maxf', value:'montant', truth:{type:'scalar', v:240}},
+   {id:'b4', text:'CA d’avril', subtitle:'Somme des montants dont la date contient « avril ».', cap:4, roles:['montant','date'], agg:'sumf', value:'montant', filters:[{role:'date',like:'avril'}], truth:{type:'scalar', v:595}},
+   {id:'b5', text:'Abonnés newsletter', subtitle:'Compter les adresses e-mail distinctes avec newsletter = oui.', ident:'email', cap:3, roles:['news'], agg:'countf', filters:[{role:'news',val:'oui'}], truth:{type:'scalar', v:3}},
+   {id:'b6', text:'Optins SMS', subtitle:'Compter les adresses e-mail distinctes avec SMS = accepté.', ident:'email', cap:3, roles:['sms'], agg:'countf', filters:[{role:'sms',val:'accepté'}], truth:{type:'scalar', v:2}},
+   {id:'b7', text:'LTV moyenne des abonnés', subtitle:'Somme des achats par adresse e-mail, moyenne sur les clients newsletter = oui.', ident:'email', cap:6, roles:['montant','news'], agg:'avg_ltv_by', value:'montant',
+    filters:[{role:'news',val:'oui'}], truth:{type:'scalar', v:198.33}},
+   {id:'b8', text:'Optins e-mail', subtitle:'Compter les adresses e-mail distinctes avec optin e-mail = accepté.', ident:'email', cap:3, roles:['email_pref'], agg:'countf', filters:[{role:'email_pref',val:'accepté'}], truth:{type:'scalar', v:3}},
+  ]},
+ {id:3, titre:'Niveau 3 — La campagne', budget:11,
+  enonces:[...ACHATS_L14,...PREFS_L14,...PARTIC_L34],
+  besoins:[
+   {id:'c1', text:'Taux de clic par campagne', subtitle:'Pour chaque campagne : clics « oui » divisés par le nombre d’envois, en %.', cap:4,
+    roles:['campagne','clic'], agg:'rate_by', group:'campagne',
+    truth:{type:'rows', cols:['campagne','taux de clic %'], rows:[['Printemps',50],['Été',33.33]]}},
+   {id:'c2', text:'CA des cliqueurs Printemps', subtitle:'Somme des achats des clients ayant un envoi Printemps avec clic = oui.', cap:7,
+    roles:['campagne','clic','montant'], agg:'sumf', value:'montant',
+    filters:[{role:'campagne',val:'Printemps'},{role:'clic',val:'oui'}], truth:{type:'scalar', v:540}},
+   {id:'c3', text:'Envois par campagne', subtitle:'Compter les lignes d’envoi, par campagne (une relance compte comme un envoi).', cap:4,
+    roles:['campagne'], agg:'count_by', group:'campagne',
+    truth:{type:'rows', cols:['campagne','envois'], rows:[['Printemps',4],['Été',3]]}},
+   {id:'c4', text:'Taux de clic des optins e-mail', subtitle:'Clics « oui » divisés par les envois des clients avec optin e-mail = accepté, en %.', cap:8,
+    roles:['clic','email_pref'], agg:'rate_by',
+    filters:[{role:'email_pref',val:'accepté'}], truth:{type:'scalar', v:50}},
+   {id:'c5', text:'CA total', subtitle:'Somme des montants.', cap:3, roles:['montant'], agg:'sumf', value:'montant', truth:{type:'scalar', v:795}},
+  ]},
+ {id:4, titre:'Niveau 4 — La réorganisation', budget:11,
+  enonces:[...ACHATS_L14,...PREFS_L14,...PARTIC_L34],
+  besoins:[
+   {id:'d1', text:'LTV : cliqueurs vs jamais', subtitle:'Somme des achats par adresse e-mail, moyenne selon « a au moins un clic oui ».', ident:'email', cap:6,
+    roles:['clic','montant'], agg:'avg_ltv_by', value:'montant',
+    derived:{type:'has', role:'clic', val:'oui'},
+    truth:{type:'rows', cols:['a cliqué','LTV moyenne'], rows:[[0,55],[1,246.67]], labels:{0:'jamais',1:'au moins une fois'}}},
+   {id:'d2', text:'CA moyen par sollicitations', subtitle:'Somme des achats par adresse e-mail, moyenne selon le nombre de lignes d’envoi reçues.', ident:'email', cap:6,
+    roles:['campagne','montant'], agg:'avg_ltv_by', value:'montant',
+    derived:{type:'count', role:'campagne'},
+    truth:{type:'rows', cols:['sollicitations','CA moyen'], rows:[[1,197.5],[2,200],[3,200]]}},
+   {id:'d3', text:'Panier des cliqueurs SMS', subtitle:'Moyenne des montants des clients ayant un clic oui ET optin SMS = accepté.', cap:8,
+    roles:['clic','sms','montant'], agg:'avgf', value:'montant',
+    filters:[{role:'clic',val:'oui'},{role:'sms',val:'accepté'}], truth:{type:'scalar', v:180}},
+   {id:'d4', text:'Clients sollicités ≥ 2 fois', subtitle:'Compter les adresses e-mail distinctes avec au moins 2 lignes d’envoi.', ident:'email', cap:2,
+    roles:['campagne'], agg:'count_having', derived:{type:'count', role:'campagne'}, having:2,
+    truth:{type:'scalar', v:2}},
+   {id:'d5', text:'Taux de clic global', subtitle:'Clics « oui » divisés par le total des envois, en %.', cap:2,
+    roles:['clic'], agg:'rate_by', truth:{type:'scalar', v:42.86}},
+  ]},
+ {id:5, titre:'Niveau 5 — Le catalogue', budget:12,
+  enonces:[...LIGNES_L5,...CATALOGUE_L5,...CAMPAGNES_L5],
+  besoins:[
+   {id:'e1', text:'Produits au catalogue par catégorie', subtitle:'Compter les produits distincts du catalogue, par catégorie — y compris ceux jamais vendus.', cap:2,
+    roles:['categorie','produit'], agg:'countd_group', value:'produit', group:'categorie',
+    truth:{type:'rows', cols:['catégorie','produits'], rows:[['Image & son',2],['Périphériques',3]]}},
+   {id:'e2', text:'CA par catégorie', subtitle:'Somme des montants de ligne, regroupée par catégorie de produit.', cap:6,
+    roles:['categorie','ligne_montant'], agg:'sum_group', value:'ligne_montant', group:'categorie',
+    truth:{type:'rows', cols:['catégorie','CA'], rows:[['Image & son',480],['Périphériques',140]]}},
+   {id:'e3', text:'Clients par campagne', subtitle:'Compter les adresses e-mail distinctes ayant reçu chaque campagne — y compris les clients sans commande.', ident:'email', cap:2,
+    roles:['campagne','email'], agg:'countd_group', value:'email', group:'campagne',
+    truth:{type:'rows', cols:['campagne','clients'], rows:[['Printemps',2],['Été',2]]}},
+   {id:'e4', text:'CA par campagne', subtitle:'Somme des montants de ligne des commandes des clients de chaque campagne.', cap:9,
+    roles:['campagne','ligne_montant'], agg:'sum_group', value:'ligne_montant', group:'campagne',
+    truth:{type:'rows', cols:['campagne','CA'], rows:[['Printemps',515],['Été',105]]}},
+   {id:'e5', text:'Top produit par campagne', subtitle:'Pour chaque campagne, le produit au plus fort CA chez ses clients.', cap:9,
+    roles:['campagne','produit','ligne_montant'], agg:'top_group', value:'ligne_montant', group:'campagne', over:'produit',
+    truth:{type:'rows', cols:['campagne','top produit'], rows:[['Printemps','Écran'],['Été','Casque']]}},
+   {id:'e6', text:'CA par client', subtitle:'Somme des montants de ligne, par client, via la commande.', ident:'email', cap:6,
+    roles:['ligne_montant'], agg:'sum_ident', value:'ligne_montant',
+    truth:{type:'rows', cols:['client','CA'], rows:[['camille.fabre@mail.fr',105],['camille.roux@mail.fr',250],['yanis.kadri@mail.fr',265]]}},
+   {id:'e7', text:'CA total', subtitle:'Somme de tous les montants de ligne.', cap:3,
+    roles:['ligne_montant'], agg:'sumf', value:'ligne_montant', truth:{type:'scalar', v:620}},
+   {id:'e8', text:'Produits distincts par commande', subtitle:'Compter les produits distincts de chaque commande.', cap:3,
+    roles:['commande','produit'], agg:'countd_group', value:'produit', group:'commande',
+    truth:{type:'rows', cols:['commande','produits'], rows:[['C1',2],['C2',2],['C3',3],['C4',1]]}},
+  ]},
+ {id:6, titre:'Niveau 6 — Le parrainage', budget:12,
+  enonces:[...ACHATS_L6,...PARRAINAGES_L6,...PARTIC_L6],
+  besoins:[
+   {id:'g1', text:'CA des filleuls, par parrain', subtitle:'Somme des achats des clients filleuls, regroupée par le parrain auquel la relation les rattache.', ident:'email', cap:8,
+    roles:['montant','email','role'], agg:'rel_sum', value:'montant',
+    truth:{type:'rows', cols:['parrain','CA filleuls'], rows:[['camille.roux@mail.fr',200],['camille.fabre@mail.fr',55],['yanis.kadri@mail.fr',260]]}},
+   {id:'g2', text:'Nombre de filleuls par parrain', subtitle:'Compter les filleuls distincts rattachés à chaque parrain.', cap:5,
+    roles:['email','role'], agg:'rel_countd',
+    truth:{type:'rows', cols:['parrain','filleuls'], rows:[['camille.roux@mail.fr',1],['camille.fabre@mail.fr',1],['yanis.kadri@mail.fr',2]]}},
+   {id:'g3', text:'CA par client', subtitle:'Somme des achats par adresse e-mail.', ident:'email', cap:2,
+    roles:['montant'], agg:'sum_ident', value:'montant',
+    truth:{type:'rows', cols:['client','CA'], rows:[['camille.fabre@mail.fr',200],['camille.roux@mail.fr',200],['lea.blanc@mail.fr',200],['nino.costa@mail.fr',60],['sofia.martin@mail.fr',55],['yanis.kadri@mail.fr',340]]}},
+   {id:'g4', text:'Clients sans parrain', subtitle:'Compter les e-mails distincts qui n’apparaissent pas comme filleul dans une relation.', ident:'email', cap:5,
+    roles:['montant','email'], agg:'rel_absent', truth:{type:'scalar', v:2}},
+   {id:'g5', text:'Filleuls ayant cliqué', subtitle:'Compter les e-mails distincts qui sont filleuls ET ont cliqué sur leur campagne.', ident:'email', cap:5,
+    roles:['email','clic'], agg:'rel_in_count', pop:'clic', filters:[{role:'clic',val:'oui'}],
+    truth:{type:'scalar', v:3}},
+   {id:'g6', text:'Taux de clic global', subtitle:'Part des clients ayant cliqué sur leur campagne (une participation par client).', cap:2,
+    roles:['clic'], agg:'rate_by', truth:{type:'scalar', v:66.67}},
+  ]},
+ {id:7, titre:'Niveau 7 — La grille tarifaire', budget:15,
+  enonces:[...TARIFS_L7,...VENTES_L7,...VENDEURS_L7],
+  besoins:[
+   {id:'h1', text:'CA valorisé au prix de la période', subtitle:'Pour chaque vente : quantité × prix du produit sur la période contenant sa date ; puis somme. (Recopie la période sur chaque vente.)', cap:10,
+    roles:['produit','periode','prix','quantite'], agg:'product_sum',
+    truth:{type:'scalar', v:905}},
+   {id:'h2', text:'CA valorisé — canal En ligne', subtitle:'Même calcul, restreint aux ventes du canal « En ligne ».', cap:10,
+    roles:['produit','periode','prix','quantite','canal'], agg:'product_sum', filters:[{role:'canal',val:'En ligne'}],
+    truth:{type:'scalar', v:310}},
+   {id:'h3', text:'Quantité par produit', subtitle:'Somme des quantités vendues, par produit.', cap:6,
+    roles:['produit','quantite'], agg:'sum_group', value:'quantite', group:'produit',
+    truth:{type:'rows', cols:['produit','quantité'], rows:[['Clavier',6],['Souris',6],['Écran',3]]}},
+   {id:'h4', text:'Prix moyen catalogue par produit', subtitle:'Moyenne des prix de la grille tarifaire, par produit.', cap:3,
+    roles:['produit','prix'], agg:'avg_group', value:'prix', group:'produit',
+    truth:{type:'rows', cols:['produit','prix moyen'], rows:[['Clavier',42.5],['Souris',22.5],['Écran',175]]}},
+   {id:'h5', text:'Ventes par période', subtitle:'Compter les lignes de vente, par période (période recopiée à la main).', cap:6,
+    roles:['periode','quantite'], agg:'count_by', group:'periode',
+    truth:{type:'rows', cols:['période','ventes'], rows:[['16–31 mars',4],['1er–15 mars',3]]}},
+   {id:'h6', text:'Quantité vendue le 12 mars', subtitle:'Somme des quantités des ventes datées du 12 mars.', cap:6,
+    roles:['quantite','date'], agg:'sumf', value:'quantite', filters:[{role:'date',val:'12 mars'}],
+    truth:{type:'scalar', v:3}},
+   {id:'h7', text:'Quantité vendue par magasin', subtitle:'Somme des quantités vendues, par magasin du vendeur. Les ventes en ligne n’ont pas de vendeur : elles ne comptent pas.', cap:9,
+    roles:['magasin','quantite'], agg:'sum_group', value:'quantite', group:'magasin',
+    truth:{type:'rows', cols:['magasin','quantité'], rows:[['Lyon',4],['Paris',6]]}},
+  ]},
+];
+
+let currentLevel=0;
+let ENONCES=LEVELS[0].enonces, QUESTIONS=LEVELS[0].besoins, BUDGET=LEVELS[0].budget;
+const levelStates={};   // mémoire de l'état de chaque niveau
+const solvedLevels={};  // niveaux résolus (bouton doré)
+function setLevel(i){
+  // sauvegarder l'état du niveau courant avant de partir
+  levelStates[currentLevel]={tables, links, tSeq};
+  currentLevel=i;
+  ENONCES=LEVELS[i].enonces; QUESTIONS=LEVELS[i].besoins; BUDGET=LEVELS[i].budget;
+  const st=levelStates[i];
+  if(st){ tables=st.tables; links=st.links; tSeq=st.tSeq; }
+  else { tables=[]; tSeq=0; links=[]; }
+  linkFrom=null; selection=null; enoncePage=0; setLinkMode(false);
+  refreshLevelBar();
+  render(); renderEnonces();
+}
+function refreshLevelBar(){
+  document.querySelectorAll('.lvlbtn').forEach((b,bi)=>{
+    b.classList.toggle('on',bi===currentLevel);
+    b.classList.toggle('solved',!!solvedLevels[bi]);
+  });
+}
+
+let tables=[], tSeq=0, dragData=null, linking=false, linkFrom=null, links=[], used={};
+let selection=null, selAnchor=null, selecting=false, pasteData=null;
+
+const $=s=>document.querySelector(s);
+const tablesEl=$('#tables'), enoncesEl=$('#enonces'), questionsEl=$('#questions'), svg=$('#linksLayer');
+
+function fk(eid,idx){return eid+':'+idx;}
+
+function makeChip(box, e, p, idx){
+  const f=document.createElement('span');
+  f.className='frag'+(p.id?' id':'');
+  f.textContent=p.t; f.draggable=true;
+  f.addEventListener('dragstart',ev=>{dragData={val:p.t,kind:p.k,isId:!!p.id,src:null};ev.dataTransfer.setData('text/plain',p.t);});
+  box.appendChild(f);
+}
+function addText(box, txt){
+  const s=document.createElement('span'); s.textContent=' '+txt+' '; s.style.color='var(--ink2)'; box.appendChild(s);
+}
+const PAGE_SIZE=5;
+let enoncePage=0;
+function renderEnonces(){
+  enoncesEl.innerHTML='';
+  const totalPages=Math.max(1, Math.ceil(ENONCES.length/PAGE_SIZE));
+  if(enoncePage>=totalPages) enoncePage=totalPages-1;
+  if(enoncePage<0) enoncePage=0;
+  if(enoncePage>0) tutoFlags.pager=true;
+  const start=enoncePage*PAGE_SIZE, end=start+PAGE_SIZE;
+  ENONCES.slice(start,end).forEach(e=>{
+    const box=document.createElement('div'); box.className='enonce';
+    e.tpl.forEach(tok=>{
+      const m=tok.match(/@(\d+)/);
+      if(m){
+        const partIdx=parseInt(m[1],10); // indice ABSOLU dans parts
+        const p=e.parts[partIdx];
+        const before=tok.slice(0,m.index).trim(); const after=tok.slice(m.index+m[0].length).trim();
+        if(before) addText(box, before);
+        if(p) makeChip(box,e,p,partIdx); else addText(box,'⟨fragment manquant⟩'); // garde-fou : jamais d'énoncé vide silencieux
+        if(after) addText(box, after);
+      } else { addText(box, tok); }
+    });
+    enoncesEl.appendChild(box);
+  });
+  renderPager(totalPages);
+  tutoTick();
+}
+function renderPager(totalPages){
+  const pg=document.getElementById('pager'); if(!pg)return;
+  pg.innerHTML='';
+  const prev=document.createElement('button'); prev.className='pgbtn'; prev.textContent='← précédent';
+  prev.disabled=enoncePage<=0; prev.onclick=()=>{enoncePage--;renderEnonces();};
+  const num=document.createElement('span'); num.className='pgnum'; num.textContent='page '+(enoncePage+1)+' / '+totalPages;
+  const next=document.createElement('button'); next.className='pgbtn'; next.textContent='suivant →';
+  next.disabled=enoncePage>=totalPages-1; next.onclick=()=>{enoncePage++;renderEnonces();};
+  pg.appendChild(prev); pg.appendChild(num); pg.appendChild(next);
+}
+
+function newTable(){ tSeq++; tables.push({id:'T'+tSeq,name:'',cols:[{id:'c'+tSeq+'_0',name:''}],rows:[{}]}); render(); }
+function addCol(t){ t.cols.push({id:t.id+'_c'+t.cols.length+'_'+Math.random().toString(36).slice(2,5),name:''}); render(); }
+function addRow(t){ t.rows.push({}); render(); }
+
+function render(){ renderTables(); renderQuestions(); updateStats(); drawLinks(); tutoTick(); }
+
+function renderTables(){
+  tablesEl.innerHTML='';
+  tables.forEach((t,tIndex)=>{
+    const card=document.createElement('div'); card.className='tbl'; card.dataset.tid=t.id;
+    const head=document.createElement('div'); head.className='tbl-head';
+    const label=document.createElement('span'); label.className='tbl-label'; label.textContent='Table '+(tIndex+1);
+    head.appendChild(label);
+    const dup=document.createElement('span'); dup.className='tbl-action'; dup.style.marginLeft='auto';
+    dup.textContent='dupliquer'; dup.onclick=()=>duplicateTable(t);
+    head.appendChild(dup);
+    const del=document.createElement('span'); del.className='tbl-action';
+    del.textContent='supprimer'; del.onclick=()=>{tables=tables.filter(x=>x!==t);links=links.filter(l=>l.a.tid!==t.id&&l.b.tid!==t.id);render();};
+    head.appendChild(del);
+    // Panneau doublon : outil d'apprentissage, affiché UNIQUEMENT au tutoriel.
+    // Dans les niveaux, des lignes identiques peuvent être légitimes (événements répétés) : au joueur de juger.
+    if(currentLevel===0){
+      const nd=perfectDupCount(t);
+      if(nd>0){
+        const warn=document.createElement('span'); warn.className='dupwarn';
+        warn.textContent='⚠ doublon'+(nd>1?'s':'')+' : '+nd+' ligne'+(nd>1?'s':'');
+        warn.title='Cette table contient '+nd+' ligne(s) strictement identique(s) à une autre. Dans une table de référence (clients, produits…), chaque chose ne doit figurer qu’une seule fois.';
+        head.appendChild(warn);
+      }
+    }
+    card.appendChild(head);
+
+    const table=document.createElement('table');
+    const thead=document.createElement('tr');
+    t.cols.forEach((c,ci)=>{
+      const th=document.createElement('th');
+      th.dataset.tid=t.id; th.dataset.cid=c.id;
+      const wrap=document.createElement('div'); wrap.className='colhead';
+      const kind=colDominantKind(t,c);
+      const badge=document.createElement('span'); badge.className='colkind';
+      badge.textContent = kind ? (KIND_META[kind]?KIND_META[kind].label:kind) : 'champ '+(ci+1);
+      if(!kind) badge.style.opacity='0.5';
+      wrap.appendChild(badge);
+      const delc=document.createElement('span'); delc.className='colx'; delc.textContent='×';
+      delc.title='Supprimer ce champ';
+      delc.onclick=(ev)=>{ev.stopPropagation();removeCol(t,c);};
+      wrap.appendChild(delc);
+      th.appendChild(wrap);
+      const port=document.createElement('span'); port.className='port'; port.textContent='●';
+      port.title='Relier ce champ à un autre'; port.dataset.tid=t.id; port.dataset.cid=c.id;
+      port.onclick=(ev)=>{ev.stopPropagation();onPort(t.id,c.id);};
+      th.appendChild(port); thead.appendChild(th);
+    });
+    const thAdd=document.createElement('th');
+    const addC=document.createElement('span'); addC.className='addcol'; addC.textContent='+ champ'; addC.onclick=()=>addCol(t);
+    thAdd.appendChild(addC); thead.appendChild(thAdd);
+    table.appendChild(thead);
+
+    t.rows.forEach((r,ri)=>{
+      const tr=document.createElement('tr');
+      t.cols.forEach((c,ci)=>{
+        const td=document.createElement('td'); td.className='drop';
+        td.dataset.tid=t.id; td.dataset.row=ri; td.dataset.col=ci; td.dataset.cid=c.id;
+        if(isSelected(t.id,ri,ci)) td.classList.add('sel');
+        td.addEventListener('dragover',ev=>{ev.preventDefault();td.classList.add('over');});
+        td.addEventListener('dragleave',()=>td.classList.remove('over'));
+        td.addEventListener('drop',ev=>{ev.preventDefault();td.classList.remove('over');
+          if(!dragData)return;
+          r[c.id]={val:dragData.val,kind:dragData.kind,isId:dragData.isId};
+          dragData=null; render();});
+        const cell=document.createElement('div'); cell.className='cell';
+        if(r[c.id]){
+          const chip=document.createElement('span'); chip.className='chip'+(r[c.id].isId?' id':'');
+          chip.textContent=r[c.id].val;
+          chip.draggable=true;
+          chip.addEventListener('dragstart',ev=>{ev.stopPropagation();dragData={val:r[c.id].val,kind:r[c.id].kind,isId:r[c.id].isId,src:null};ev.dataTransfer.setData('text/plain',r[c.id].val);});
+          const x=document.createElement('span'); x.className='x'; x.textContent='×'; x.onclick=()=>{delete r[c.id];render();};
+          chip.appendChild(x); cell.appendChild(chip);
+        }else{cell.style.color='var(--muted)';cell.textContent='·';}
+        td.appendChild(cell); tr.appendChild(td);
+      });
+      const tdEnd=document.createElement('td'); tdEnd.style.border='none'; tdEnd.style.padding='0 4px';
+      if(t.rows.length>1){
+        const rx=document.createElement('span'); rx.className='rowx'; rx.textContent='×'; rx.title='Supprimer cette ligne';
+        rx.onclick=()=>{ t.rows.splice(ri,1); clearSelection(); render(); };
+        tdEnd.appendChild(rx);
+      }
+      tr.appendChild(tdEnd);
+      table.appendChild(tr);
+    });
+    card.appendChild(table);
+    const addR=document.createElement('span'); addR.className='addrow'; addR.textContent='+ ligne'; addR.onclick=()=>addRow(t);
+    card.appendChild(addR);
+
+    const myLinks=links.filter(l=>l.a.tid===t.id||l.b.tid===t.id);
+    myLinks.forEach(l=>{
+      const other=(l.a.tid===t.id)?l.b:l.a; const mine=(l.a.tid===t.id)?l.a:l.b;
+      const lr=document.createElement('div'); lr.className='linkrow';
+      lr.innerHTML='<span>↔ '+colLabel(mine)+' ⟷ '+colLabel(other)+'</span>';
+      lr.title='Clique le trait ou la croix pour supprimer';
+      const x=document.createElement('span'); x.className='x'; x.textContent='×'; x.onclick=()=>{links=links.filter(z=>z!==l);render();};
+      lr.appendChild(x); card.appendChild(lr);
+    });
+    tablesEl.appendChild(card);
+  });
+}
+
+function removeCol(t,c){
+  if(t.cols.length<=1){ t.rows.forEach(r=>delete r[c.id]); t.cols=t.cols.filter(x=>x!==c); t.cols.push({id:t.id+'_c0_'+Math.random().toString(36).slice(2,5),name:''}); }
+  else { t.cols=t.cols.filter(x=>x!==c); t.rows.forEach(r=>delete r[c.id]); }
+  links=links.filter(l=>!(l.a.tid===t.id&&l.a.cid===c.id)&&!(l.b.tid===t.id&&l.b.cid===c.id));
+  render();
+}
+
+function duplicateTable(t){
+  tSeq++;
+  const nid='T'+tSeq;
+  const colMap={};
+  const cols=t.cols.map((c,i)=>{ const ncid=nid+'_c'+i+'_'+Math.random().toString(36).slice(2,5); colMap[c.id]=ncid; return {id:ncid,name:c.name}; });
+  const rows=t.rows.map(r=>{ const nr={}; t.cols.forEach(c=>{ if(r[c.id]) nr[colMap[c.id]]={...r[c.id]}; }); return nr; });
+  const idx=tables.indexOf(t);
+  tables.splice(idx+1,0,{id:nid,name:'',cols,rows});
+  render();
+}
+
+// ─── Sélection multi-cases (sans mode : démarre sur zone vide d'une cellule) ───
+function isSelected(tid,row,col){
+  if(!selection||selection.tid!==tid)return false;
+  return row>=selection.r0&&row<=selection.r1&&col>=selection.c0&&col<=selection.c1;
+}
+function cellFromEvent(ev){
+  const el=ev.target.closest('td.drop'); if(!el)return null;
+  if(el.dataset.tid===undefined)return null;
+  return {tid:el.dataset.tid, row:+el.dataset.row, col:+el.dataset.col};
+}
+function updateSelection(cur){
+  if(!selAnchor||cur.tid!==selAnchor.tid)return;
+  selection={tid:cur.tid,
+    r0:Math.min(selAnchor.row,cur.row), r1:Math.max(selAnchor.row,cur.row),
+    c0:Math.min(selAnchor.col,cur.col), c1:Math.max(selAnchor.col,cur.col)};
+  paintSelection();
+}
+function paintSelection(){
+  document.querySelectorAll('td.drop').forEach(td=>{
+    const s=isSelected(td.dataset.tid,+td.dataset.row,+td.dataset.col);
+    td.classList.toggle('sel',s);
+  });
+}
+function clearSelection(){ selection=null; paintSelection(); }
+function selectionValues(){
+  if(!selection)return null;
+  const t=tables.find(x=>x.id===selection.tid); if(!t)return null;
+  const grid=[];
+  for(let ri=selection.r0;ri<=selection.r1;ri++){
+    const row=[];
+    for(let ci=selection.c0;ci<=selection.c1;ci++){
+      const c=t.cols[ci]; const cell=t.rows[ri]?t.rows[ri][c.id]:null;
+      row.push(cell?{...cell}:null);
+    }
+    grid.push(row);
+  }
+  return grid;
+}
+function applyPaste(tid,row,col){
+  const t=tables.find(x=>x.id===tid); if(!t||!pasteData)return;
+  for(let dr=0;dr<pasteData.length;dr++){
+    for(let dc=0;dc<pasteData[dr].length;dc++){
+      const tr=row+dr, tc=col+dc;
+      if(tr>=t.rows.length||tc>=t.cols.length) continue; // troncature
+      const val=pasteData[dr][dc];
+      const cid=t.cols[tc].id;
+      if(val) t.rows[tr][cid]={...val}; else delete t.rows[tr][cid];
+    }
+  }
+  render();
+}
+
+document.addEventListener('mousedown',ev=>{
+  if(linking)return;
+  // Ne pas interférer avec les éléments interactifs
+  if(ev.target.closest('.chip, button, input, .port, .colx, .tbl-action, .addcol, .addrow, .rowx, .pgbtn, a')) return;
+  const cur=cellFromEvent(ev); if(!cur)return;
+  // Démarrer un collage si on presse sur une case déjà sélectionnée
+  if(selection&&isSelected(cur.tid,cur.row,cur.col)){
+    pasteData=selectionValues(); ev.preventDefault(); return;
+  }
+  // Sinon démarrer un lasso depuis la zone vide de la cellule
+  selecting=true; selAnchor=cur; selection={tid:cur.tid,r0:cur.row,r1:cur.row,c0:cur.col,c1:cur.col};
+  paintSelection(); ev.preventDefault();
+});
+document.addEventListener('mousemove',ev=>{
+  if(!selecting)return;
+  const cur=cellFromEvent(ev); if(!cur)return;
+  updateSelection(cur);
+});
+document.addEventListener('mouseup',ev=>{
+  if(pasteData){
+    const cur=cellFromEvent(ev);
+    if(cur) applyPaste(cur.tid,cur.row,cur.col);
+    pasteData=null; return;
+  }
+  if(selecting){
+    selecting=false;
+    // une sélection d'une seule case ne sert à rien -> on l'efface
+    if(selection && selection.r0===selection.r1 && selection.c0===selection.c1) clearSelection();
+  }
+});
+
+function colLabel(ref){
+  const t=tables.find(x=>x.id===ref.tid); if(!t)return '?';
+  const idx=tables.indexOf(t)+1;
+  const c=t.cols.find(x=>x.id===ref.cid);
+  let field='champ';
+  if(c){ const k=colDominantKind(t,c); if(k) field=(KIND_META[k]?KIND_META[k].label:k); }
+  return 'Table '+idx+' · '+field;
+}
+
+function onPort(tid,cid){
+  if(!linking) setLinkMode(true);
+  if(!linkFrom){ linkFrom={tid,cid}; banner('Champ source sélectionné — clique le point d’un champ dans une AUTRE table.'); render(); return; }
+  if(linkFrom.tid===tid&&linkFrom.cid===cid){ linkFrom=null; banner('Sélection annulée.'); render(); return; }
+  if(linkFrom.tid===tid){ banner('Relie deux tables différentes.'); return; }
+  if(!links.some(l=>(sameRef(l.a,linkFrom)&&sameRef(l.b,{tid,cid}))||(sameRef(l.b,linkFrom)&&sameRef(l.a,{tid,cid}))))
+    links.push({a:{...linkFrom},b:{tid,cid}});
+  linkFrom=null; banner('Lien créé.'); render();
+}
+function sameRef(a,b){return a.tid===b.tid&&a.cid===b.cid;}
+function setLinkMode(on){ linking=on; $('#linkMode').classList.toggle('on',on); if(!on){linkFrom=null;banner('');} }
+function banner(m){const b=$('#linkBanner');b.textContent=m;b.classList.toggle('show',!!m);}
+
+function portCenter(ref){
+  const el=document.querySelector('.port[data-tid="'+ref.tid+'"][data-cid="'+ref.cid+'"]');
+  if(!el)return null; const r=el.getBoundingClientRect();
+  return {x:r.left+r.width/2,y:r.top+r.height/2};
+}
+function drawLinks(){
+  svg.innerHTML='';
+  links.forEach(l=>{
+    const p1=portCenter(l.a),p2=portCenter(l.b); if(!p1||!p2)return;
+    const mx=(p1.x+p2.x)/2; const d=`M ${p1.x} ${p1.y} C ${mx} ${p1.y} ${mx} ${p2.y} ${p2.x} ${p2.y}`;
+    const hit=document.createElementNS('http://www.w3.org/2000/svg','path');
+    hit.setAttribute('d',d);hit.setAttribute('fill','none');hit.setAttribute('stroke','transparent');hit.setAttribute('stroke-width','14');hit.style.cursor='pointer';
+    hit.addEventListener('click',()=>{links=links.filter(z=>z!==l);render();});
+    const path=document.createElementNS('http://www.w3.org/2000/svg','path');
+    path.setAttribute('d',d);path.setAttribute('fill','none');path.setAttribute('stroke','#7F77DD');path.setAttribute('stroke-width','2');
+    svg.appendChild(hit);svg.appendChild(path);
+  });
+}
+window.addEventListener('scroll',drawLinks,true);
+window.addEventListener('resize',drawLinks);
+
+/*ENGINE:BEGIN — zone pure (sans DOM), extraite telle quelle par le harnais de test node*/
+function colKinds(t,c){
+  const kinds={};
+  t.rows.forEach(r=>{const cell=r[c.id]; if(cell&&cell.kind){kinds[cell.kind]=(kinds[cell.kind]||0)+1;}});
+  return kinds;
+}
+function colDominantKind(t,c){
+  const k=colKinds(t,c); let best=null,bn=0;
+  for(const kind in k){ if(k[kind]>bn){bn=k[kind];best=kind;} }
+  return best;
+}
+
+function sqlIdent(s){ return '"'+String(s).replace(/"/g,'""')+'"'; }
+function sqlName(base,i){ return base+'_'+i; }
+
+function buildModelDb(){
+  const db=new SQL.Database();
+  const tmeta=[];
+  tables.forEach((t,ti)=>{
+    const tname=sqlName('t',ti);
+    const colDefs=t.cols.map((c,ci)=>({cid:c.id, sql:sqlName('col',ci), kind:colDominantKind(t,c)}));
+    if(colDefs.length===0) return;
+    const create='CREATE TABLE '+tname+' ('+colDefs.map(c=>c.sql+' TEXT').join(', ')+');';
+    db.run(create);
+    t.rows.forEach(r=>{
+      const vals=colDefs.map(c=>{ const cell=r[c.cid]; return cell?cell.val:null; });
+      if(vals.every(v=>v===null)) return;
+      const ph=colDefs.map(()=>'?').join(',');
+      db.run('INSERT INTO '+tname+' VALUES ('+ph+');', vals);
+    });
+    tmeta.push({tid:t.id, tname, cols:colDefs});
+  });
+  return {db, tmeta};
+}
+
+function findColForKind(tmeta, kind){
+  for(const t of tmeta){ for(const c of t.cols){ if(c.kind===kind) return {tname:t.tname, col:c.sql, tid:t.tid}; } }
+  return null;
+}
+function personKeyCols(tmeta, tid){
+  const t=tmeta.find(x=>x.tid===tid); if(!t)return [];
+  const emailC=t.cols.find(c=>c.kind==='email');
+  if(emailC) return [{col:emailC.sql, kind:'email'}];
+  const cols=[];
+  const preC=t.cols.find(c=>c.kind==='prenom');
+  const nomC=t.cols.find(c=>c.kind==='nomfam');
+  if(preC) cols.push({col:preC.sql, kind:'prenom'});
+  if(nomC) cols.push({col:nomC.sql, kind:'nomfam'});
+  return cols;
+}
+
+function linkBetween(tmeta, tidA, tidB){
+  const pairs=[];
+  for(const l of links){
+    const a=l.a,b=l.b;
+    if(a.tid===tidA&&b.tid===tidB){ const ac=resolveCol(tmeta,a),bc=resolveCol(tmeta,b); if(ac&&bc)pairs.push({aCol:ac,bCol:bc}); }
+    else if(a.tid===tidB&&b.tid===tidA){ const ac=resolveCol(tmeta,b),bc=resolveCol(tmeta,a); if(ac&&bc)pairs.push({aCol:ac,bCol:bc}); }
+  }
+  if(pairs.length===0) return null;
+  return {pairs, aCol:pairs[0].aCol, bCol:pairs[0].bCol};
+}
+function resolveCol(tmeta, ref){
+  const t=tmeta.find(x=>x.tid===ref.tid); if(!t)return null;
+  const idx=tables.find(x=>x.id===ref.tid).cols.findIndex(c=>c.id===ref.cid);
+  return t.cols[idx]?t.cols[idx].sql:null;
+}
+
+function tablesForNeed(tmeta, needKinds){
+  const set=[];
+  needKinds.forEach(k=>{ const f=findColForKind(tmeta,k); if(f && !set.includes(f.tid)) set.push(f.tid); });
+  return set;
+}
+
+function connectedPath(tmeta, tids){
+  if(tids.length<=1) return {ok:true, order:tids.slice()};
+  const allTids=tmeta.map(t=>t.tid);
+  const adjAll={}; allTids.forEach(t=>adjAll[t]=[]);
+  for(let i=0;i<allTids.length;i++)for(let j=0;j<allTids.length;j++){
+    if(i!==j && linkBetween(tmeta,allTids[i],allTids[j])) adjAll[allTids[i]].push(allTids[j]);
+  }
+  const inTree=new Set([tids[0]]);
+  const order=[tids[0]];
+  const required=new Set(tids);
+  function bfsPath(from, targetSet){
+    const prev={}; const seen=new Set([from]); const queue=[from];
+    while(queue.length){
+      const cur=queue.shift();
+      if(cur!==from && targetSet.has(cur)){
+        const path=[cur]; let c=cur; while(prev[c]!==undefined){c=prev[c];path.unshift(c);} return path;
+      }
+      (adjAll[cur]||[]).forEach(n=>{ if(!seen.has(n)){seen.add(n);prev[n]=cur;queue.push(n);} });
+    }
+    return null;
+  }
+  for(const req of tids){
+    if(inTree.has(req)) continue;
+    let best=null;
+    for(const anchor of inTree){
+      const p=bfsPath(anchor, new Set([req]));
+      if(p && (best===null || p.length<best.length)) best=p;
+    }
+    if(!best) return {ok:false, order};
+    best.forEach(t=>{ if(!inTree.has(t)){inTree.add(t);order.push(t);} });
+  }
+  return {ok:true, order};
+}
+
+function allTablesForKind(tmeta, kind){
+  const out=[];
+  tmeta.forEach(t=>{ if(t.cols.some(c=>c.kind===kind)) out.push(t.tid); });
+  return out;
+}
+function tableColCountMeta(tmeta,tid){ const t=tmeta.find(x=>x.tid===tid); return t?t.cols.length:0; }
+
+// Retourne le plan de coût MINIMAL pour couvrir les rôles d'un besoin.
+// { ok, order (tables traversées), joins, cols, total, personTid }
+function planQuestion(tmeta, q){
+  const roles=(q.roles||q.need||[]).slice();
+  if(q.ident==='email' && !roles.includes('email')) roles.push('email');
+  if(q.ident==='nom'){ if(!roles.includes('prenom'))roles.push('prenom'); if(!roles.includes('nomfam'))roles.push('nomfam'); }
+  // pour chaque rôle, la liste des tables candidates
+  const candidatesPerRole=roles.map(r=>allTablesForKind(tmeta,r));
+  if(candidatesPerRole.some(c=>c.length===0)) return {ok:false};
+  // tables candidates pour l'identité personne
+  let personCandidates=[null];
+  if(q.group==='person'){
+    personCandidates=[];
+    ['email','prenom','nomfam'].forEach(k=>allTablesForKind(tmeta,k).forEach(tid=>{ if(!personCandidates.includes(tid))personCandidates.push(tid); }));
+    if(personCandidates.length===0) return {ok:false};
+  }
+  let best=null;
+  // produit cartésien des choix de table par rôle
+  function rec(i, chosen){
+    if(i===roles.length){
+      for(const pTid of personCandidates){
+        const need=[...new Set(pTid?chosen.concat(pTid):chosen)];
+        if(need.length===0) continue;
+        const path=connectedPath(tmeta, need);
+        if(!path.ok) continue;
+        const order=path.order;
+        const joins=order.length-1;
+        const cols=order.reduce((s,tid)=>s+tableColCountMeta(tmeta,tid),0);
+        const total=joins+cols;
+        if(best===null||total<best.total) best={ok:true, order, joins, cols, total, personTid:pTid};
+      }
+      return;
+    }
+    candidatesPerRole[i].forEach(tid=>rec(i+1, chosen.concat(tid)));
+  }
+  rec(0,[]);
+  return best||{ok:false};
+}
+
+function findColInTables(tmeta, kind, tidSet){
+  for(const t of tmeta){ if(tidSet&&!tidSet.includes(t.tid))continue; for(const c of t.cols){ if(c.kind===kind) return {tname:t.tname, col:c.sql, tid:t.tid}; } }
+  return null;
+}
+function runQuestion(q){
+  if(!dbReady) return {status:'loading'};
+  const {db,tmeta}=buildModelDb();
+  try{
+    // Agrégats relationnels (N6) : plan dédié, routé par les LIENS tirés par le joueur
+    if(q.agg==='rel_sum'||q.agg==='rel_countd'||q.agg==='rel_absent'||q.agg==='rel_in_count'){
+      const out=runRelation(q, db, tmeta); db.close(); return out;
+    }
+    const plan=planQuestion(tmeta,q);
+    if(!plan.ok){
+      db.close();
+      // distinguer "aucun champ" de "pas reliées"
+      const roleList=(q.roles||q.need||[]);
+      const anyRoleMissing=roleList.some(r=>allTablesForKind(tmeta,r).length===0);
+      return {status: anyRoleMissing?'no_field':'not_linked'};
+    }
+    // Agrégats à deux niveaux (par client) : chemin dédié, sans FROM joint
+    if(q.agg==='avg_ltv_by'||q.agg==='count_having'){
+      const out=runTwoLevel(q, db, tmeta, plan);
+      db.close(); return out;
+    }
+    // Agrégats spéciaux : identité imposée en clé de regroupement (N5/N6) et valorisation quantité×prix (N7)
+    if(q.agg==='sum_ident'||q.agg==='product_sum'){
+      const out=runSpecial(q, db, tmeta, plan);
+      db.close(); return out;
+    }
+    const order=plan.order;
+    const personTid=plan.personTid;
+    const tnameOf = tid => { const m=tmeta.find(x=>x.tid===tid); return m?m.tname:null; };
+    if(!tnameOf(order[0])){ db.close(); return {status:'no_field'}; }
+    let fromSql=tnameOf(order[0]);
+    const joined=[order[0]];
+    for(let i=1;i<order.length;i++){
+      let lk=null, prev=null;
+      for(const pj of joined){ lk=linkBetween(tmeta,pj,order[i]); if(lk){prev=pj;break;} }
+      if(!lk){ db.close(); return {status:'not_linked'}; }
+      const prevName=tnameOf(prev), curName=tnameOf(order[i]);
+      const onCond=lk.pairs.map(pr=>prevName+'.'+pr.aCol+' = '+curName+'.'+pr.bCol).join(' AND ');
+      fromSql+=' JOIN '+curName+' ON '+onCond;
+      joined.push(order[i]);
+    }
+
+    let sql='', groupSel=null, groupBy=null;
+    if(q.group==='person'){
+      const pks=personKeyCols(tmeta, personTid);
+      if(pks.length===0){ db.close(); return {status:'no_field'}; }
+      const pName=tnameOf(personTid);
+      groupSel=pks.map(k=>pName+'.'+k.col).join(", ");
+      groupBy=pks.map(k=>pName+'.'+k.col).join(", ");
+    }
+    const inPlan=order;
+    {
+      // ——— Agrégats génériques ———
+      const colOf=(role)=>findColInTables(tmeta, role, inPlan);
+      const whereClauses=(q.filters||[]).map(f=>{
+        const c=colOf(f.role); if(!c) return null;
+        return f.like ? c.tname+'.'+c.col+" LIKE '%"+f.like+"%'" : c.tname+'.'+c.col+"='"+f.val+"'";
+      });
+      if(whereClauses.some(w=>w===null)){ db.close(); return {status:'no_field'}; }
+      const where=whereClauses.length? ' WHERE '+whereClauses.join(' AND ') : '';
+      const V=q.value?colOf(q.value):null;
+      const vexpr=V?('CAST('+V.tname+'.'+V.col+' AS REAL)'):null;
+      if(q.agg==='sumf'){ sql='SELECT ROUND(SUM('+vexpr+'),2) AS v FROM '+fromSql+where+';'; }
+      else if(q.agg==='avgf'){ sql='SELECT ROUND(AVG('+vexpr+'),2) AS v FROM '+fromSql+where+';'; }
+      else if(q.agg==='countf'){
+        if(q.ident){
+          const parts=[];
+          if(q.ident==='email'){ const c=colOf('email'); if(!c){db.close();return {status:'no_ident'};} parts.push(c.tname+'.'+c.col); }
+          else { const p=colOf('prenom'), n=colOf('nomfam'); if(!p||!n){db.close();return {status:'no_ident'};} parts.push(p.tname+'.'+p.col, n.tname+'.'+n.col); }
+          const expr=parts.length===1?parts[0]:parts.join(" || '|' || ");
+          sql='SELECT COUNT(DISTINCT '+expr+') AS v FROM '+fromSql+where+';';
+        } else {
+          sql='SELECT COUNT(*) AS v FROM '+fromSql+where+';';
+        }
+      }
+      else if(q.agg==='maxf'){ sql='SELECT ROUND(MAX('+vexpr+'),2) AS v FROM '+fromSql+where+';'; }
+      else if(q.agg==='count_by'){ const G=colOf(q.group); sql='SELECT '+G.tname+'.'+G.col+' AS g, COUNT(*) AS v FROM '+fromSql+where+' GROUP BY g ORDER BY g;'; }
+      else if(q.agg==='sum_group'){ const G=colOf(q.group); sql='SELECT '+G.tname+'.'+G.col+' AS g, ROUND(SUM('+vexpr+'),2) AS v FROM '+fromSql+where+' GROUP BY g ORDER BY g;'; }
+      else if(q.agg==='avg_group'){ const G=colOf(q.group); sql='SELECT '+G.tname+'.'+G.col+' AS g, ROUND(AVG('+vexpr+'),2) AS v FROM '+fromSql+where+' GROUP BY g ORDER BY g;'; }
+      else if(q.agg==='countd_group'){ const G=colOf(q.group), Vd=colOf(q.value);
+        sql='SELECT '+G.tname+'.'+G.col+' AS g, COUNT(DISTINCT '+Vd.tname+'.'+Vd.col+') AS v FROM '+fromSql+where+' GROUP BY g ORDER BY g;'; }
+      else if(q.agg==='top_group'){ const G=colOf(q.group), K=colOf(q.over);
+        // par groupe, la valeur de q.over au plus fort SUM(q.value) — données calibrées sans ex æquo
+        const base='SELECT '+G.tname+'.'+G.col+' AS g, '+K.tname+'.'+K.col+' AS k, SUM('+vexpr+') AS s FROM '+fromSql+where+' GROUP BY g, k';
+        sql='SELECT g, k AS v FROM (SELECT g, k, s, ROW_NUMBER() OVER (PARTITION BY g ORDER BY s DESC, k) AS rn FROM ('+base+')) WHERE rn=1 ORDER BY g;'; }
+      else if(q.agg==='rate_by'){
+        const K=colOf('clic');
+        const num="SUM(CASE WHEN "+K.tname+'.'+K.col+"='oui' THEN 1.0 ELSE 0 END)";
+        if(q.group){ const G=colOf(q.group); sql='SELECT '+G.tname+'.'+G.col+' AS g, ROUND('+num+'*100/COUNT(*),2) AS v FROM '+fromSql+where+' GROUP BY g ORDER BY g;'; }
+        else sql='SELECT ROUND('+num+'*100/COUNT(*),2) AS v FROM '+fromSql+where+';';
+      }
+    }
+    const res=db.exec(sql);
+    db.close();
+    const pkCount = q.group==='person' ? personKeyCols(tmeta,personTid).length : 0;
+    return {status:'ok', rows: res.length?res[0]:{columns:[],values:[]}, keyCols:pkCount,
+            plan:{tids:order, joins:plan.joins, cols:plan.cols, total:plan.total}};
+  }catch(err){ db.close(); return {status:'error', msg:err.message}; }
+}
+
+// ——— Agrégats à deux niveaux (par client) ———
+function tableHoldingRole(tmeta, role, planTids){
+  for(const t of tmeta){ if(planTids&&!planTids.includes(t.tid))continue; if(t.cols.some(c=>c.kind===role)) return t; }
+  return null;
+}
+function keyKinds(pks){ return pks.map(k=>k.kind).sort().join(','); }
+function identKeyColsOf(tmeta, tid, ident){
+  const t=tmeta.find(x=>x.tid===tid); if(!t)return [];
+  if(ident==='email'){ const c=t.cols.find(c=>c.kind==='email'); return c?[{col:c.sql,kind:'email'}]:[]; }
+  if(ident==='nom'){ const p=t.cols.find(c=>c.kind==='prenom'), n=t.cols.find(c=>c.kind==='nomfam'); return (p&&n)?[{col:p.sql,kind:'prenom'},{col:n.sql,kind:'nomfam'}]:[]; }
+  return personKeyCols(tmeta, tid);
+}
+function runTwoLevel(q, db, tmeta, plan){
+  try{
+    const inPlan=plan.order;
+    const vt = q.value ? tableHoldingRole(tmeta, q.value, inPlan) : null;
+    const gRole = q.derived ? q.derived.role : q.group;
+    const gt = gRole ? tableHoldingRole(tmeta, gRole, inPlan) : null;
+
+    if(q.agg==='count_having'){
+      if(!gt) return {status:'no_field'};
+      const gks=identKeyColsOf(tmeta, gt.tid, q.ident);
+      if(!gks.length) return {status:q.ident?'no_ident':'no_field'};
+      const gkeys=gks.map(k=>k.col).join(', ');
+      const sql='SELECT COUNT(*) AS v FROM (SELECT '+gkeys+', COUNT(*) AS n FROM '+gt.tname+' GROUP BY '+gkeys+') WHERE n>='+(q.having||2)+';';
+      const res=db.exec(sql);
+      return {status:'ok', rows:res.length?res[0]:{columns:[],values:[]}, keyCols:0,
+              plan:{tids:inPlan, joins:plan.joins, cols:plan.cols, total:plan.total}};
+    }
+
+    // avg_ltv_by
+    if(!vt) return {status:'no_field'};
+    const vks=identKeyColsOf(tmeta, vt.tid, q.ident);
+    if(!vks.length) return {status:q.ident?'no_ident':'no_field'};
+    const vcol=vt.cols.find(c=>c.kind===q.value).sql;
+    const vkeys=vks.map(k=>k.col);
+    const sameTable = gt && gt.tid===vt.tid;
+    const filterOnV=(q.filters||[]).filter(f=>vt.cols.some(c=>c.kind===f.role));
+    const filterElse=(q.filters||[]).filter(f=>!vt.cols.some(c=>c.kind===f.role));
+
+    // sous-requête valeur : LTV par client (groupe inclus si même table)
+    let sub1Sel=vkeys.join(', ');
+    let sub1Grp=vkeys.join(', ');
+    let gInSub1=null;
+    if(sameTable && q.group){ const gc=vt.cols.find(c=>c.kind===q.group).sql; sub1Sel+=', '+gc+' AS g'; sub1Grp+=', '+gc; gInSub1=true; }
+    const wV=filterOnV.map(f=>{const c=vt.cols.find(x=>x.kind===f.role).sql; return f.like? c+" LIKE '%"+f.like+"%'" : c+"='"+f.val+"'";});
+    const sub1='(SELECT '+sub1Sel+', ROUND(SUM(CAST('+vcol+' AS REAL)),2) AS ltv FROM '+vt.tname+(wV.length?' WHERE '+wV.join(' AND '):'')+' GROUP BY '+sub1Grp+') L';
+
+    let sql='';
+    if(q.derived){
+      if(!gt) return {status:'no_field'};
+      const gks=identKeyColsOf(tmeta, gt.tid, q.ident);
+      if(!gks.length) return {status:q.ident?'no_ident':'no_field'};
+      if(keyKinds(gks)!==keyKinds(vks)) return {status:'key_mismatch'};
+      const gcol=q.derived.role ? gt.cols.find(c=>c.kind===q.derived.role).sql : null;
+      const gexpr = q.derived.type==='has'
+        ? "MAX(CASE WHEN "+gcol+"='"+q.derived.val+"' THEN 1 ELSE 0 END)"
+        : 'COUNT(*)';
+      const gkeys=gks.map(k=>k.col);
+      const sub2='(SELECT '+gkeys.join(', ')+', '+gexpr+' AS g FROM '+gt.tname+' GROUP BY '+gkeys.join(', ')+') G';
+      const on=vkeys.map((k,i)=>'L.'+k+' = G.'+gkeys[i]).join(' AND ');
+      sql='SELECT G.g AS g, ROUND(AVG(L.ltv),2) AS v FROM '+sub1+' JOIN '+sub2+' ON '+on+' GROUP BY g ORDER BY g;';
+    } else if(q.group && !gInSub1){
+      // groupe direct sur une autre table (grain personne attendu)
+      if(!gt) return {status:'no_field'};
+      const gks=identKeyColsOf(tmeta, gt.tid, q.ident);
+      if(!gks.length) return {status:q.ident?'no_ident':'no_field'};
+      if(keyKinds(gks)!==keyKinds(vks)) return {status:'key_mismatch'};
+      const gcol=gt.cols.find(c=>c.kind===q.group).sql;
+      const gkeys=gks.map(k=>k.col);
+      const on=vkeys.map((k,i)=>'L.'+k+' = T.'+gkeys[i]).join(' AND ');
+      const wE=filterElse.map(f=>{const c=gt.cols.find(x=>x.kind===f.role); return c? 'T.'+c.sql+"='"+f.val+"'":null;}).filter(Boolean);
+      sql='SELECT T.'+gcol+' AS g, ROUND(AVG(L.ltv),2) AS v FROM '+sub1+' JOIN '+gt.tname+' T ON '+on+(wE.length?' WHERE '+wE.join(' AND '):'')+' GROUP BY g ORDER BY g;';
+    } else if(q.group && gInSub1){
+      sql='SELECT g, ROUND(AVG(ltv),2) AS v FROM '+sub1.slice(0,-2)+' GROUP BY g ORDER BY g;';
+    } else {
+      // pas de groupe : moyenne simple des LTV, filtres éventuels sur d'autres tables
+      if(filterElse.length){
+        const ft=tableHoldingRole(tmeta, filterElse[0].role, inPlan);
+        if(!ft) return {status:'no_field'};
+        const fks=identKeyColsOf(tmeta, ft.tid, q.ident);
+        if(!fks.length) return {status:q.ident?'no_ident':'no_field'};
+        if(keyKinds(fks)!==keyKinds(vks)) return {status:'key_mismatch'};
+        const fkeys=fks.map(k=>k.col);
+        const on=vkeys.map((k,i)=>'L.'+k+' = F.'+fkeys[i]).join(' AND ');
+        const wE=filterElse.map(f=>{const c=ft.cols.find(x=>x.kind===f.role); return c? 'F.'+c.sql+"='"+f.val+"'":null;}).filter(Boolean);
+        sql='SELECT ROUND(AVG(L.ltv),2) AS v FROM '+sub1+' JOIN '+ft.tname+' F ON '+on+(wE.length?' WHERE '+wE.join(' AND '):'')+';';
+      } else {
+        sql='SELECT ROUND(AVG(ltv),2) AS v FROM '+sub1.slice(0,-2)+';';
+      }
+    }
+    const res=db.exec(sql);
+    return {status:'ok', rows:res.length?res[0]:{columns:[],values:[]}, keyCols:0,
+            plan:{tids:inPlan, joins:plan.joins, cols:plan.cols, total:plan.total}};
+  }catch(err){ return {status:'error', msg:err.message}; }
+}
+
+// ——— Jointure greedy le long des LIENS du joueur, dans l'ordre d'un plan ———
+function joinFrom(tmeta, order){
+  const tnameOf=tid=>{const m=tmeta.find(x=>x.tid===tid);return m?m.tname:null;};
+  let fromSql=tnameOf(order[0]); const joined=[order[0]];
+  for(let i=1;i<order.length;i++){
+    let lk=null,prev=null;
+    for(const pj of joined){ lk=linkBetween(tmeta,pj,order[i]); if(lk){prev=pj;break;} }
+    if(!lk) return null;
+    const pn=tnameOf(prev),cn=tnameOf(order[i]);
+    fromSql+=' JOIN '+cn+' ON '+lk.pairs.map(pr=>pn+'.'+pr.aCol+' = '+cn+'.'+pr.bCol).join(' AND ');
+    joined.push(order[i]);
+  }
+  return {fromSql, tnameOf};
+}
+
+// ——— Agrégats spéciaux (N5/N6/N7), génériques : aucune référence à un contenu de niveau ———
+function runSpecial(q, db, tmeta, plan){
+  try{
+    const inPlan=plan.order;
+    const okRes=res=>({status:'ok', rows:res.length?res[0]:{columns:[],values:[]}, keyCols:0,
+      plan:{tids:inPlan, joins:plan.joins, cols:plan.cols, total:plan.total}});
+
+    if(q.agg==='sum_ident'){
+      // Somme d'une valeur regroupée par l'identité imposée, le long du chemin joint du plan.
+      const V=findColInTables(tmeta, q.value, inPlan); if(!V) return {status:'no_field'};
+      const jf=joinFrom(tmeta, inPlan); if(!jf) return {status:'not_linked'};
+      let parts=[];
+      if(q.ident==='email'){ const t=tableHoldingRole(tmeta,'email',inPlan); if(!t)return{status:'no_ident'}; parts=[t.tname+'.'+t.cols.find(c=>c.kind==='email').sql]; }
+      else { const p=tableHoldingRole(tmeta,'prenom',inPlan), n=tableHoldingRole(tmeta,'nomfam',inPlan); if(!p||!n)return{status:'no_ident'};
+        parts=[p.tname+'.'+p.cols.find(c=>c.kind==='prenom').sql, n.tname+'.'+n.cols.find(c=>c.kind==='nomfam').sql]; }
+      const sel=parts.join(', ');
+      const sql='SELECT '+sel+', ROUND(SUM(CAST('+V.tname+'.'+V.col+' AS REAL)),2) AS v FROM '+jf.fromSql+' GROUP BY '+sel+' ORDER BY '+sel+';';
+      return okRes(db.exec(sql));
+    }
+
+    if(q.agg==='product_sum'){
+      // SUM(quantité × prix). La jointure suit STRICTEMENT les liens tirés (clé composite = plusieurs liens entre les deux tables).
+      const vQ=tableHoldingRole(tmeta,'quantite',inPlan);
+      const vPx=tableHoldingRole(tmeta,'prix',inPlan);
+      if(!vQ||!vPx) return {status:'no_field'};
+      const qCol=vQ.cols.find(c=>c.kind==='quantite').sql, pCol=vPx.cols.find(c=>c.kind==='prix').sql;
+      // filtres éventuels, portés par la table des ventes (ex. canal)
+      const wV=(q.filters||[]).map(f=>{ const c=vQ.cols.find(x=>x.kind===f.role); if(!c) return null;
+        return vQ.tname+'.'+c.sql+(f.like?(" LIKE '%"+f.like+"%'"):("='"+f.val+"'")); });
+      if(wV.some(x=>x===null)) return {status:'no_field'};
+      const where=wV.length?(' WHERE '+wV.join(' AND ')):'';
+      if(vQ.tid===vPx.tid){
+        return okRes(db.exec('SELECT ROUND(SUM(CAST('+qCol+' AS REAL) * CAST('+pCol+' AS REAL)),2) AS v FROM '+vQ.tname+where.replaceAll(vQ.tname+'.','')+';'));
+      }
+      if(!vQ.cols.some(c=>c.kind==='periode')) return {status:'no_period'}; // la période n'a pas été recopiée sur les ventes
+      const lk=linkBetween(tmeta, vQ.tid, vPx.tid); if(!lk) return {status:'not_linked'};
+      const on=lk.pairs.map(pr=>vQ.tname+'.'+pr.aCol+' = '+vPx.tname+'.'+pr.bCol).join(' AND ');
+      const sql='SELECT ROUND(SUM(CAST('+vQ.tname+'.'+qCol+' AS REAL) * CAST('+vPx.tname+'.'+pCol+' AS REAL)),2) AS v FROM '+vQ.tname+' JOIN '+vPx.tname+' ON '+on+where+';';
+      return okRes(db.exec(sql));
+    }
+    return {status:'error', msg:'agg inconnu'};
+  }catch(err){ return {status:'error', msg:err.message}; }
+}
+
+// ——— Relation à double référence (N6) ———
+// Le sens (parrain/filleul) n'est JAMAIS lu dans un nom de colonne ni dans une phrase :
+// il est inféré des LIENS que le joueur tire entre les colonnes de la table de relations
+// et une ou deux tables de rôle (colonne de kind 'role' dont la valeur dominante est 'parrain' ou 'filleul').
+function roleOfTable(tmeta, tm){
+  const rc=tm.cols.find(c=>c.kind==='role'); if(!rc) return null;
+  const tbl=tables.find(x=>x.id===tm.tid); if(!tbl) return null;
+  const counts={};
+  tbl.rows.forEach(r=>{ const cell=r[rc.cid]; if(cell&&cell.val) counts[cell.val]=(counts[cell.val]||0)+1; });
+  let best=null,bn=0; for(const v in counts){ if(counts[v]>bn){bn=counts[v];best=v;} }
+  return best;
+}
+function resolveRelation(tmeta){
+  const R=tmeta.find(t=>t.cols.filter(c=>c.kind==='email').length>=2);
+  if(!R) return {ok:false, why:'no_rel'};
+  const emailCols=R.cols.filter(c=>c.kind==='email');
+  let par=null, fil=null; const roleTids=[];
+  emailCols.forEach(ec=>{
+    links.forEach(l=>{
+      let ref=null, other=null;
+      if(l.a.tid===R.tid){ ref=l.a; other=l.b; } else if(l.b.tid===R.tid){ ref=l.b; other=l.a; }
+      if(!ref || resolveCol(tmeta,ref)!==ec.sql) return;
+      const T=tmeta.find(t=>t.tid===other.tid); if(!T) return;
+      const role=roleOfTable(tmeta, T);
+      if(role==='parrain'){ par=ec; if(!roleTids.includes(T.tid))roleTids.push(T.tid); }
+      else if(role==='filleul'){ fil=ec; if(!roleTids.includes(T.tid))roleTids.push(T.tid); }
+    });
+  });
+  if(par&&fil&&par.sql===fil.sql) return {ok:false, why:'no_direction'};
+  if(!par&&!fil) return {ok:false, why:'no_direction'};
+  if(par&&!fil) fil=emailCols.find(c=>c.sql!==par.sql);
+  if(fil&&!par) par=emailCols.find(c=>c.sql!==fil.sql);
+  if(!par||!fil) return {ok:false, why:'no_direction'};
+  return {ok:true, R, parCol:par.sql, filCol:fil.sql, roleTids};
+}
+// Plan de coût d'un agrégat relationnel : tables réellement traversées (relation + rôles utilisés + table de valeur).
+function planRelation(tmeta, q){
+  const rel=resolveRelation(tmeta);
+  if(!rel.ok) return {ok:false, why:rel.why};
+  let req=[rel.R.tid];
+  if(q.agg==='rel_sum'){
+    const V=tableHoldingRole(tmeta, q.value, null); if(!V) return {ok:false, why:'no_field'};
+    req=req.concat(rel.roleTids); req.push(V.tid);
+  } else if(q.agg==='rel_countd'){
+    req=req.concat(rel.roleTids);
+  } else if(q.agg==='rel_absent'){
+    const A=tableHoldingRole(tmeta, 'montant', null); if(!A) return {ok:false, why:'no_field'};
+    req.push(A.tid);
+  } else if(q.agg==='rel_in_count'){
+    const T=tableHoldingRole(tmeta, q.pop, null); if(!T) return {ok:false, why:'no_field'};
+    req.push(T.tid);
+  }
+  req=[...new Set(req)];
+  const path=connectedPath(tmeta, req);
+  if(!path.ok) return {ok:false, why:'not_linked'};
+  const order=path.order;
+  const joins=order.length-1;
+  const cols=order.reduce((s,tid)=>s+tableColCountMeta(tmeta,tid),0);
+  return {ok:true, order, joins, cols, total:joins+cols, rel};
+}
+function runRelation(q, db, tmeta){
+  try{
+    const plan=planRelation(tmeta, q);
+    if(!plan.ok){
+      if(plan.why==='no_rel') return {status:'no_rel'};
+      if(plan.why==='no_direction') return {status:'no_direction'};
+      if(plan.why==='not_linked') return {status:'not_linked'};
+      return {status:'no_field'};
+    }
+    const rel=plan.rel, R=rel.R;
+    const okRes=res=>({status:'ok', rows:res.length?res[0]:{columns:[],values:[]}, keyCols:0,
+      plan:{tids:plan.order, joins:plan.joins, cols:plan.cols, total:plan.total}});
+    if(q.agg==='rel_in_count'){
+      // e-mails distincts présents dans la colonne filleul ET satisfaisant les filtres de la table de population (ex. clic = oui)
+      const T=tableHoldingRole(tmeta, q.pop, null);
+      const tEmail=T.cols.find(c=>c.kind==='email'); if(!tEmail) return {status:'no_ident'};
+      const w=(q.filters||[]).map(f=>{ const c=T.cols.find(x=>x.kind===f.role); if(!c) return null;
+        return T.tname+'.'+c.sql+(f.like?(" LIKE '%"+f.like+"%'"):("='"+f.val+"'")); });
+      if(w.some(x=>x===null)) return {status:'no_field'};
+      const sql='SELECT COUNT(DISTINCT '+T.tname+'.'+tEmail.sql+') AS v FROM '+T.tname
+        +' WHERE '+(w.length?(w.join(' AND ')+' AND '):'')+T.tname+'.'+tEmail.sql
+        +' IN (SELECT '+rel.filCol+' FROM '+R.tname+' WHERE '+rel.filCol+' IS NOT NULL AND '+rel.filCol+" <> '');";
+      return okRes(db.exec(sql));
+    }
+    if(q.agg==='rel_absent'){
+      // population = table portant les montants (référentiel client de fait) ; filleuls = colonne fil de la relation
+      const A=tableHoldingRole(tmeta,'montant',null);
+      const aEmail=A.cols.find(c=>c.kind==='email'); if(!aEmail) return {status:'no_ident'};
+      const sql='SELECT COUNT(DISTINCT '+A.tname+'.'+aEmail.sql+') AS v FROM '+A.tname
+        +' WHERE '+A.tname+'.'+aEmail.sql+' NOT IN (SELECT '+rel.filCol+' FROM '+R.tname
+        +' WHERE '+rel.filCol+' IS NOT NULL AND '+rel.filCol+" <> '');";
+      return okRes(db.exec(sql));
+    }
+    const jf=joinFrom(tmeta, plan.order); if(!jf) return {status:'not_linked'};
+    if(q.agg==='rel_countd'){
+      const sql='SELECT '+R.tname+'.'+rel.parCol+' AS g, COUNT(DISTINCT '+R.tname+'.'+rel.filCol+') AS v FROM '+jf.fromSql+' GROUP BY g ORDER BY g;';
+      return okRes(db.exec(sql));
+    }
+    // rel_sum : la jointure de la table de valeur suit le lien tiré par le joueur.
+    // Un lien tiré sur la mauvaise colonne de la relation produit un chiffre faux SILENCIEUX — c'est voulu.
+    const V=tableHoldingRole(tmeta, q.value, null);
+    const vCol=V.cols.find(c=>c.kind===q.value).sql;
+    const sql='SELECT '+R.tname+'.'+rel.parCol+' AS g, ROUND(SUM(CAST('+V.tname+'.'+vCol+' AS REAL)),2) AS v FROM '+jf.fromSql+' GROUP BY g ORDER BY g;';
+    return okRes(db.exec(sql));
+  }catch(err){ return {status:'error', msg:err.message}; }
+}
+
+// ——— Doublons parfaits (fonction pure) ———
+// Deux lignes strictement identiques sur TOUTES les colonnes. Seules les lignes complètes
+// (toutes les cellules remplies) sont comparées : en cours de construction, une ligne partielle
+// n'est jamais signalée. Tables à une seule colonne exclues.
+function perfectDupCount(t){
+  if(!t || t.cols.length<2) return 0;
+  const seen={}; let dups=0;
+  t.rows.forEach(r=>{
+    const parts=[];
+    for(const c of t.cols){ const cell=r[c.id]; if(!cell||cell.val===undefined||cell.val===''){ return; } parts.push(cell.kind+':'+cell.val); }
+    const k=parts.join('\u0001');
+    if(seen[k]) dups++; else seen[k]=1;
+  });
+  return dups;
+}
+
+// ——— Colonnes réellement utilisées par un besoin (pour la surbrillance du coût) ———
+// = colonnes des tables traversées dont le rôle est consommé par le besoin
+//   (rôles, identité, valeur, groupe, over, filtres, population)
+// + colonnes des liens dont les DEUX extrémités sont dans les tables traversées.
+// Les autres colonnes des tables traversées sont du poids mort : payées, mais pas lues.
+function usedColsForQuestion(q, tids){
+  const kinds=new Set(q.roles||[]);
+  if(q.ident==='email') kinds.add('email');
+  if(q.ident==='nom'){ kinds.add('prenom'); kinds.add('nomfam'); }
+  if(q.value) kinds.add(q.value);
+  if(q.group && q.group!=='person') kinds.add(q.group);
+  if(q.over) kinds.add(q.over);
+  if(q.pop) kinds.add(q.pop);
+  (q.filters||[]).forEach(f=>kinds.add(f.role));
+  if(q.derived&&q.derived.role) kinds.add(q.derived.role);
+  const used=new Set();
+  tables.forEach(t=>{
+    if(!tids.includes(t.id)) return;
+    t.cols.forEach(c=>{ const k=colDominantKind(t,c); if(k&&kinds.has(k)) used.add(t.id+'|'+c.id); });
+  });
+  links.forEach(l=>{
+    if(tids.includes(l.a.tid)&&tids.includes(l.b.tid)){ used.add(l.a.tid+'|'+l.a.cid); used.add(l.b.tid+'|'+l.b.cid); }
+  });
+  return [...used];
+}
+
+// ——— Coûts (fonctions pures, utilisées par le rendu ET par le harnais de test) ———
+function tableColCount(tid){ const t=tables.find(x=>x.id===tid); return t?t.cols.length:0; }
+function buildModelDbMetaOnly(){
+  const tmeta=[];
+  tables.forEach((t,ti)=>{
+    const cols=t.cols.map((c,ci)=>({cid:c.id, sql:sqlName('col',ci), kind:colDominantKind(t,c)}));
+    if(cols.length) tmeta.push({tid:t.id, tname:sqlName('t',ti), cols});
+  });
+  return {tmeta};
+}
+function questionCost(q){
+  if(!dbReady) return {ok:false};
+  const {tmeta}=buildModelDbMetaOnly();
+  if(q.agg==='rel_sum'||q.agg==='rel_countd'||q.agg==='rel_absent'||q.agg==='rel_in_count'){
+    const plan=planRelation(tmeta,q);
+    if(!plan.ok) return {ok:false};
+    return {ok:true, total:plan.total, joins:plan.joins, cols:plan.cols, tids:plan.order, used:usedColsForQuestion(q, plan.order)};
+  }
+  const plan=planQuestion(tmeta,q);
+  if(!plan.ok) return {ok:false};
+  return {ok:true, total:plan.total, joins:plan.joins, cols:plan.cols, tids:plan.order, used:usedColsForQuestion(q, plan.order)};
+}
+function globalCost(){
+  let cols=0; tables.forEach(t=>cols+=t.cols.length);
+  return {cols, links:links.length, total:cols+links.length};
+}
+/*ENGINE:END*/
+
+function normVal(v){
+  if(v===null||v===undefined) return '';
+  if(typeof v==='number'){ return Math.round(v*100)/100+''; }
+  const n=parseFloat(v); if(!isNaN(n)&&(''+n)===(''+v).trim()) return Math.round(n*100)/100+'';
+  return (''+v).trim();
+}
+
+function compareNewResult(q, rows){
+  const t=q.truth;
+  const vals=(rows&&rows.values)||[];
+  if(t.type==='scalar'){
+    if(vals.length!==1) return false;
+    const v=vals[0][vals[0].length-1];
+    return normVal(v)===normVal(t.v);
+  }
+  const got=vals.map(r=>r.map(normVal).join('|')).sort();
+  const exp=t.rows.map(r=>r.map(normVal).join('|')).sort();
+  return got.length===exp.length && got.every((x,i)=>x===exp[i]);
+}
+function truthDisplayNew(q){
+  const t=q.truth;
+  if(t.type==='scalar') return {cols:['valeur'], rows:[[t.v]]};
+  const labels=t.labels||{};
+  return {cols:t.cols, rows:t.rows.map(r=>[labels[r[0]]!==undefined?labels[r[0]]:r[0], ...r.slice(1)])};
+}
+function modelDisplayNew(q, rows){
+  const t=q.truth; const labels=t.labels||{};
+  if(t.type==='scalar'||!rows||!rows.values) return rows;
+  return {columns:rows.columns, values:rows.values.map(r=>[labels[r[0]]!==undefined?labels[r[0]]:r[0], ...r.slice(1)])};
+}
+
+function renderResultTable(cols, values){
+  if(!values||values.length===0) return '<div class="empty">vide</div>';
+  let h='<table><tr>'+cols.map(c=>'<th>'+c+'</th>').join('')+'</tr>';
+  values.slice(0,8).forEach(r=>{ h+='<tr>'+r.map(v=>'<td>'+normVal(v)+'</td>').join('')+'</tr>'; });
+  h+='</table>'; if(values.length>8)h+='<div class="empty">+'+(values.length-8)+' lignes…</div>'; return h;
+}
+
+let correctCount=0;
+function renderQuestions(){
+  questionsEl.innerHTML=''; correctCount=0;
+  QUESTIONS.forEach(q=>{
+    const box=document.createElement('div'); box.className='q';
+    const top=document.createElement('div'); top.className='q-top';
+    const txt=document.createElement('div'); txt.className='q-text';
+    let inner='<div>'+q.text+'</div>';
+    if(q.subtitle) inner+='<div class="q-sub">'+q.subtitle+'</div>';
+    if(q.ident) inner+='<div class="q-ident">identité : '+(q.ident==='email'?'adresse e-mail':'prénom + nom')+'</div>';
+    txt.innerHTML=inner;
+    const cost=document.createElement('div'); cost.className='q-cost';
+    top.appendChild(txt); top.appendChild(cost); box.appendChild(top);
+
+    const cc=questionCost(q);
+    if(cc.ok){
+      const over = q.cap!==undefined && cc.total>q.cap;
+      const cls = over ? 'no' : 'good';
+      cost.innerHTML='<span class="cost-badge '+cls+'">coût '+cc.total+(q.cap!==undefined?(' / '+q.cap):'')+'</span>'
+        +'<div class="cost-detail">'+cc.joins+' jointure'+(cc.joins>1?'s':'')+' + '+cc.cols+' champ'+(cc.cols>1?'s':'')+'</div>';
+      cost.onmouseenter=()=>{highlightCols(cc.tids, cc.used); if(!tutoFlags.costHover){tutoFlags.costHover=true; tutoTick();}};
+      cost.onmouseleave=()=>highlightCols(null);
+    } else cost.innerHTML='<span class="cost-badge no">—'+(q.cap!==undefined?(' / '+q.cap):'')+'</span>';
+
+    const r=runQuestion(q);
+    const resWrap=document.createElement('div'); resWrap.className='q-res';
+    const modelBox=document.createElement('div'); modelBox.className='cellbox model';
+    const truthBox=document.createElement('div'); truthBox.className='cellbox';
+    { const td=truthDisplayNew(q);
+      truthBox.innerHTML='<div class="h">résultat attendu</div>'+renderResultTable(td.cols, td.rows); }
+
+    let verdict='', vclass='na';
+    if(r.status==='loading'){ modelBox.innerHTML='<div class="h">ton modèle</div><div class="empty">moteur en chargement…</div>'; }
+    else if(r.status==='no_field'){ modelBox.innerHTML='<div class="h">ton modèle</div><div class="empty">aucun champ ne porte l’info</div>'; verdict='en attente'; vclass='na'; }
+    else if(r.status==='not_linked'){ modelBox.innerHTML='<div class="h">ton modèle</div><div class="empty">tables non reliées</div>'; verdict='pas de chemin'; vclass='na'; }
+    else if(r.status==='no_ident'){ modelBox.innerHTML='<div class="h">ton modèle</div><div class="empty">l’identité imposée est absente du chemin</div>'; verdict='identité manquante'; vclass='ko'; }
+    else if(r.status==='no_rel'){ modelBox.innerHTML='<div class="h">ton modèle</div><div class="empty">aucune table ne relie deux adresses e-mail</div>'; verdict='relation absente'; vclass='na'; }
+    else if(r.status==='no_direction'){ modelBox.innerHTML='<div class="h">ton modèle</div><div class="empty">le sens de la relation est indéterminé : relie les colonnes de la relation aux tables de rôle</div>'; verdict='sens indéterminé'; vclass='na'; }
+    else if(r.status==='no_period'){ modelBox.innerHTML='<div class="h">ton modèle</div><div class="empty">la période n’est pas recopiée sur les ventes</div>'; verdict='période manquante'; vclass='ko'; }
+    else if(r.status==='key_mismatch'){ modelBox.innerHTML='<div class="h">ton modèle</div><div class="empty">clés d’identité incompatibles entre tables</div>'; verdict='clés incompatibles'; vclass='ko'; }
+    else if(r.status==='error'){ modelBox.innerHTML='<div class="h">ton modèle</div><div class="empty">erreur : '+r.msg+'</div>'; verdict='erreur'; vclass='ko'; }
+    else {
+      let eq;
+      { const disp=modelDisplayNew(q, r.rows);
+        const td=truthDisplayNew(q);
+        const cols=(q.truth.type==='scalar')?['valeur']:td.cols;
+        modelBox.innerHTML='<div class="h">ton modèle</div>'+renderResultTable(cols, disp.values);
+        eq=compareNewResult(q, r.rows); }
+      if(eq){ modelBox.classList.add('ok'); verdict='✓ couvert'; vclass='ok'; correctCount++; }
+      else { modelBox.classList.add('ko'); verdict='✕ résultat faux (clé ou structure)'; vclass='ko'; }
+    }
+
+    resWrap.appendChild(modelBox); resWrap.appendChild(truthBox); box.appendChild(resWrap);
+    const v=document.createElement('div'); v.className='verdict '+vclass; v.textContent=verdict; box.appendChild(v);
+    questionsEl.appendChild(box);
+  });
+  $('#st-correct').textContent=correctCount+' / '+QUESTIONS.length;
+}
+
+// Surbrillance à deux niveaux : FORT sur les colonnes lues par le besoin (rôles, identité, liens),
+// DOUX sur les autres colonnes des tables traversées — payées dans le coût, mais pas lues.
+function highlightCols(tids, usedKeys){
+  const usedSet=new Set(usedKeys||[]);
+  document.querySelectorAll('#tables th[data-cid], #tables td.drop').forEach(el=>{
+    el.classList.remove('hl-col','hl-col-soft');
+    if(!tids) return;
+    const key=el.dataset.tid+'|'+el.dataset.cid;
+    if(usedSet.has(key)) el.classList.add('hl-col');
+    else if(tids.includes(el.dataset.tid)) el.classList.add('hl-col-soft');
+  });
+}
+
+function updateStats(){
+  $('#st-tables').textContent=tables.length;
+  const g=globalCost();
+  $('#st-cols').textContent=g.cols;
+  $('#st-links').textContent=g.links;
+  const costEl=$('#st-cost');
+  costEl.textContent = BUDGET!==null ? g.total+' / '+BUDGET : g.total;
+  costEl.classList.toggle('st-over', BUDGET!==null && g.total>BUDGET);
+  const bd=document.getElementById('st-cost-detail');
+  if(bd) bd.textContent = g.cols+' champs + '+g.links+' liens';
+  $('#st-correct').textContent=correctCount+' / '+QUESTIONS.length;
+  // victoire : tous verts + chaque besoin dans son plafond + coût global dans le budget
+  let capsOk=true, allComputable=true;
+  QUESTIONS.forEach(q=>{
+    const c=questionCost(q);
+    if(!c.ok){ allComputable=false; return; }
+    if(q.cap!==undefined && c.total>q.cap) capsOk=false;
+  });
+  const win = correctCount===QUESTIONS.length && allComputable && capsOk && (BUDGET===null || g.total<=BUDGET);
+  const v=document.getElementById('victory');
+  if(win){
+    v.textContent = BUDGET!==null
+      ? '✓ Niveau réussi — tous les besoins couverts dans leurs plafonds, modèle à '+g.total+' / '+BUDGET+'.'
+      : '✓ Tous les besoins sont couverts.';
+    v.classList.add('show');
+    solvedLevels[currentLevel]=true; refreshLevelBar();
+  }
+  else v.classList.remove('show');
+}
+
+// ═══════════ Tutoriel (niveau 0) ═══════════
+// Textes provisoires : à affiner après les premiers passages candidats.
+const tutoFlags={pager:false, costHover:false};
+let tutoStep=0, tutoDone=false;
+function tKinds(t){ const s={}; t.cols.forEach(c=>{const k=colDominantKind(t,c); if(k)s[k]=true;}); return s; }
+function rowsWithKind(t,kind){ let n=0; t.rows.forEach(r=>{ if(t.cols.some(c=>r[c.id]&&r[c.id].kind===kind)) n++; }); return n; }
+function kindOfRef(ref){ const t=tables.find(x=>x.id===ref.tid); if(!t)return null; const c=t.cols.find(x=>x.id===ref.cid); return c?colDominantKind(t,c):null; }
+const TUTO_STEPS=[
+ {title:'Bienvenue', next:'button', target:null,
+  html:'Dans cet exercice, tu dois créer des <b>tables de données</b> à partir de phrases métier (les <b>énoncés</b>). Ces tables serviront à calculer des informations (les <b>besoins</b>). Aucune expérience en data ni maîtrise des tables relationnelles n’est nécessaire pour cet exercice. Tout est recalculé pour de vrai sur <b>tes</b> tables, à chaque modification.'},
+ {title:'Les énoncés métier', next:'auto', target:'#pager', check:()=>tutoFlags.pager,
+  html:'À gauche : les énoncés métier. Chaque pastille est un <b>fragment</b> que tu pourras glisser dans une table. Navigue avec les flèches : va voir la <b>page 2</b>, elle contient les adresses e-mail des clients.'},
+ {title:'Les besoins métier', next:'button', target:'#questions',
+  html:'À droite : les besoins métier. Deux besoins ici : le <b>CA total</b> et le <b>CA par client</b>. Le badge « identité : prénom + nom » indique la <b>clé de comptage</b> : c’est ce qui définit « un client » dans le résultat. Ici, deux lignes appartiennent au même client si le prénom ET le nom sont identiques — attention, il y a deux Camille ! Chaque besoin confronte ton résultat au résultat attendu : vert si c’est juste, rouge si c’est faux, gris tant que l’information manque.'},
+ {title:'Ta première table', next:'auto', target:'#addTable',
+  check:()=>tables.some(t=>{const k=tKinds(t); return k.prenom&&k.nomfam&&k.montant&&rowsWithKind(t,'montant')>=5;}),
+  html:'Clique « Nouvelle table », ajoute des champs avec « + champ », puis glisse le <b>prénom</b>, le <b>nom</b> et le <b>montant</b> des 5 achats — une ligne par achat. Astuce : sélectionne une zone à la souris puis re-glisse-la pour recopier plusieurs cases d’un coup. Tout n’est pas bon à ranger : laisse la date où elle est.'},
+ {title:'Tout est vert…', next:'button', target:'#questions',
+  html:'Les deux besoins sont passés au vert : les chiffres sont justes. Mais chaque besoin a aussi un <b>coût</b> : l’effort que demande son calcul avec tes tables, affiché sur le badge à côté du besoin. Ce coût doit rester <b>sous le budget indiqué</b> sur le badge (par exemple « 3 / 2 » signifie : coût 3 pour un budget de 2 — c’est trop). Regarde le badge du besoin « CA total »…'},
+ {title:'Le coût d’un besoin', next:'auto', target:'#questions',
+  check:()=>tutoFlags.costHover,
+  html:'<b>Survole le badge de coût</b> d’un besoin : les tables qu’il utilise s’illuminent. Le coût d’un besoin, c’est le « prix » que paie le système pour répondre : il parcourt des tables, et chaque champ de chaque table parcourue le ralentit. Formule : (tables traversées − 1) + tous les champs de ces tables. Ici « CA total » n’a besoin que du montant, mais ta table de 3 champs l’oblige à tout parcourir : coût 3, pour un plafond de 2. Être juste ne suffit pas : il faut être juste <b>et</b> dans le plafond.'},
+ {title:'Le coût global', next:'button', target:'.stat',
+  html:'En haut : le <b>coût global</b> = tous les champs + tous les liens du modèle, à tenir dans le budget du niveau. Tu es à 3 / 7 : il reste de la marge. On va la dépenser intelligemment pour faire baisser le coût du « CA total ».'},
+ {title:'Restructurer', next:'auto', target:'#tables',
+  check:()=>{ const slim=tables.find(t=>{const k=tKinds(t); return k.email&&k.montant&&!k.prenom&&!k.nomfam&&rowsWithKind(t,'montant')>=5;});
+    const ref=tables.find(t=>{const k=tKinds(t); return t!==slim&&k.email&&k.prenom&&k.nomfam;});
+    return !!(slim&&ref); },
+  html:'Objectif : une table d’<b>achats</b> légère (e-mail + montant) et une table <b>clients</b> (e-mail + prénom + nom). Utilise « dupliquer », puis : dans la copie, garde prénom + nom et ajoute l’e-mail de chacun (page 2 des énoncés) ; dans la table d’achats, supprime prénom et nom (croix sur l’en-tête du champ) et remplace-les par l’e-mail. Pendant les travaux, les besoins repassent en attente : c’est normal. Petit avertissement : la duplication vient de créer un problème dans ta table clients. C’est voulu — on le verra apparaître dans deux étapes.'},
+ {title:'Le lien', next:'auto', target:'#linkMode',
+  check:()=>links.some(l=>kindOfRef(l.a)==='email'&&kindOfRef(l.b)==='email'),
+  html:'Tes deux tables s’ignorent : rien ne dit au système quelles lignes d’achats appartiennent à quel client. Un <b>lien</b> déclare : « ces deux colonnes contiennent la même information ». Quand deux lignes ont la même valeur dans les colonnes reliées, le système sait qu’elles parlent de la même chose et peut les combiner. Ici, l’<b>e-mail</b> est présent des deux côtés : clique le point rose du champ e-mail d’une table, puis celui de l’autre.'},
+ {title:'Les doublons', next:'auto', target:'#tables',
+  check:()=>{ const ref=tables.find(t=>{const k=tKinds(t); return k.email&&k.prenom&&k.nomfam;});
+    return !!(ref && perfectDupCount(ref)===0); },
+  html:'Le lien est en place… mais « CA par client » est <b>rouge</b> : Camille Roux affiche 400 € au lieu de 200 €. Regarde ta table clients : <b>Camille Roux et Yanis Kadri y apparaissent deux fois</b> (deux achats chacun dans la table de départ). Deux lignes strictement identiques, c’est un <b>doublon</b>. Voici ce qui se passe, étape par étape :'
+  +'<ul style="margin:8px 0 8px 4px;padding-left:18px;">'
+  +'<li>Le besoin « CA par client » additionne les achats en regroupant par l’identité : <b>prénom + nom</b>.</li>'
+  +'<li>Le montant est dans la <b>première table</b> (les achats) ; le prénom et le nom sont dans la <b>seconde table</b> (les clients). Pour chaque achat, le système part de la première table, suit le <b>lien</b>, et cherche dans la seconde la ou les lignes qui portent le même e-mail.</li>'
+  +'<li>L’achat de 120 € de camille.roux@… se retrouve ainsi relié à <b>deux</b> lignes de la table clients : pour le système, cet achat « matche » avec deux clients… qui s’appelleraient toutes les deux Camille Roux.</li>'
+  +'<li>Il en conclut que <b>deux clients ont réalisé cet achat</b> : les 120 € sont comptés deux fois. Pareil pour l’achat de 80 €.</li>'
+  +'<li>Ces deux « clientes » portant le même prénom et le même nom, elles sont ensuite <b>fusionnées en une seule ligne</b> du résultat — d’où un CA deux fois trop haut : 120 + 80 + 120 + 80 = <b>400 €</b> au lieu de 200 €.</li>'
+  +'</ul>'
+  +'Le panneau ⚠ sur la table te le signale.<br><br>À retenir : une table qui décrit des choses uniques (des clients, des produits) ne doit contenir <b>chaque chose qu’une seule fois</b>. Ce panneau n’existe que dans le tutoriel : dans les niveaux, ce sera à toi d’y penser. Et méfiance : deux lignes identiques ne sont pas toujours une erreur — si la même chose s’est réellement produite deux fois (deux achats identiques le même jour), les deux lignes sont légitimes.<br><br>Maintenant, <b>supprime les lignes en trop</b> de ta table clients (croix à droite de la ligne).'},
+ {title:'Dernière ligne droite', next:'auto', target:null,
+  check:()=>!!solvedLevels[0],
+  html:'Termine la manœuvre : quand chaque besoin est vert <b>et</b> dans son plafond, et que le coût global tient dans le budget, le niveau passe en résolu.'},
+ {title:'Résolu — et la leçon du jeu', next:'end', target:null,
+  html:'Regarde les coûts : « CA total » est descendu à 2 / 2, « CA par client » est monté à 6 / 6, le global à 6 / 7. Un coût a baissé, l’autre a monté en restant bon : tout le jeu est cet <b>arbitrage</b>. Chaque niveau ajoute une mécanique — passe au Niveau 1 quand tu es prêt.'},
+];
+function tutoAdvance(){
+  let guard=0;
+  while(guard++<TUTO_STEPS.length+2){
+    const st=TUTO_STEPS[tutoStep];
+    if(st && st.next==='auto' && st.check && st.check()){ tutoStep++; continue; }
+    break;
+  }
+  if(tutoStep>=TUTO_STEPS.length) tutoStep=TUTO_STEPS.length-1;
+}
+function tutoTick(){
+  if(currentLevel===0 && !tutoDone) tutoAdvance();
+  renderCoach();
+}
+function renderCoach(){
+  const el=document.getElementById('coach'); if(!el) return;
+  const rb=document.getElementById('tutoRestart');
+  if(rb) rb.style.display = currentLevel===0 ? '' : 'none';
+  document.querySelectorAll('.tuto-target').forEach(x=>x.classList.remove('tuto-target'));
+  if(currentLevel!==0 || tutoDone){ el.style.display='none'; return; }
+  const st=TUTO_STEPS[tutoStep];
+  el.style.display='block';
+  el.innerHTML='<div class="coach-step">Tutoriel — étape '+(tutoStep+1)+' / '+TUTO_STEPS.length+'</div>'
+    +'<div class="coach-title">'+st.title+'</div><div class="coach-body">'+st.html+'</div>';
+  const row=document.createElement('div'); row.className='coach-row';
+  if(st.next==='button'){
+    const b=document.createElement('button'); b.className='btn pri'; b.textContent='Continuer';
+    b.onclick=()=>{tutoStep++; tutoTick();}; row.appendChild(b);
+  }
+  if(st.next==='end'){
+    const b=document.createElement('button'); b.className='btn'; b.textContent='↺ Relancer le tutoriel';
+    b.onclick=restartTuto; row.appendChild(b);
+  } else {
+    const skip=document.createElement('span'); skip.className='coach-skip'; skip.textContent='passer le tutoriel';
+    skip.onclick=()=>{tutoDone=true; renderCoach();}; row.appendChild(skip);
+  }
+  el.appendChild(row);
+  if(st.target){ const tg=document.querySelector(st.target); if(tg) tg.classList.add('tuto-target'); }
+}
+function restartTuto(){
+  tutoStep=0; tutoDone=false; tutoFlags.pager=false; tutoFlags.costHover=false;
+  delete levelStates[0]; delete solvedLevels[0];
+  tables=[]; tSeq=0; links=[]; linkFrom=null; selection=null; enoncePage=0; setLinkMode(false);
+  refreshLevelBar(); render(); renderEnonces();
+}
+document.getElementById('tutoRestart').onclick=restartTuto;
+
+$('#addTable').onclick=newTable;
+$('#linkMode').onclick=()=>setLinkMode(!linking);
+$('#reset').onclick=()=>{ delete levelStates[currentLevel]; tables=[];tSeq=0;links=[];linkFrom=null;selection=null;setLinkMode(false); render(); renderEnonces(); };
+
+// Barre de niveaux
+(function(){
+  const bar=document.getElementById('lvlbar');
+  LEVELS.forEach((lv,i)=>{
+    const b=document.createElement('button'); b.className='lvlbtn'+(i===0?' on':'');
+    b.textContent=lv.titre;
+    b.onclick=()=>setLevel(i);
+    bar.appendChild(b);
+  });
+})();
+
+setLevel(0);
+</script>
+</body>
+</html>
